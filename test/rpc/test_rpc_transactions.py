@@ -92,7 +92,7 @@ def test_get_transaction_by_hash_deploy(deploy_info):
         "version": hex(SUPPORTED_RPC_TX_VERSION),
         "type": rpc_txn_type(block_tx["type"]),
         "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
-        "constructor_calldata": ["0x045"],
+        "constructor_calldata": ["0x45"],
     }
 
 
@@ -198,7 +198,7 @@ def test_get_transaction_by_hash_raises_on_incorrect_hash():
     """
     Get transaction by incorrect hash
     """
-    ex = rpc_call("starknet_getTransactionByHash", params={"transaction_hash": "0x00"})
+    ex = rpc_call("starknet_getTransactionByHash", params={"transaction_hash": "0x0"})
 
     assert ex["error"] == {"code": 25, "message": "Transaction hash not found"}
 
@@ -478,7 +478,7 @@ def test_add_invoke_transaction_v0():
         max_fee=rpc_felt(0),
         version=hex(LEGACY_RPC_TX_VERSION),
         signature=[],
-        nonce="0x00",
+        nonce="0x0",
         contract_address=rpc_felt(contract_address),
         entry_point_selector=rpc_felt(get_selector_from_name("increase_balance")),
         calldata=[rpc_felt(amount1), rpc_felt(amount2)],
