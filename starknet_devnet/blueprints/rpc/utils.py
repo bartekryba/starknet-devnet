@@ -82,8 +82,8 @@ def rpc_felt(value: Union[int, str]) -> Felt:
         value = int(value) if value.isnumeric() else int(value, 16)
 
     if value == 0:
-        return "0x00"
-    return "0x0" + hex(value).lstrip("0x")
+        return "0x0"
+    return "0x" + hex(value).lstrip("0x")
 
 
 def gateway_felt(value: Union[int, str]) -> str:
@@ -101,7 +101,7 @@ def rpc_root(root: str) -> Felt:
     """
     Convert 0 prefixed root to 0x prefixed root
     """
-    return "0x0" + (root.lstrip("0") or "0")
+    return "0x" + (root.lstrip("0") or "0")
 
 
 def rpc_response(message_id: int, content: dict) -> dict:

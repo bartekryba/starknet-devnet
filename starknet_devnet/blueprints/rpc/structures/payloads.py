@@ -696,12 +696,26 @@ class RpcNonceDiff(TypedDict):
     nonce: Felt
 
 
+class RpcDeclaredClass(TypedDict):
+    """TypedDict for rpc declared class"""
+    class_hash: Felt
+    compiled_class_hash: Felt
+
+
+class RpcReplacedClass(TypedDict):
+    """TypedDict for contract which class was replaced"""
+    contract_address: Felt
+    class_hash: Felt
+
+
 class RpcStateDiff(TypedDict):
     """TypedDict for rpc state diff"""
 
     storage_diffs: List[RpcStorageDiff]
-    declared_contract_hashes: List[Felt]
+    deprecated_declared_classes: List[Felt]
+    declared_classes: List[RpcDeclaredClass]
     deployed_contracts: List[RpcDeployedContractDiff]
+    replaced_classes: List[RpcReplacedClass]
     nonces: List[RpcNonceDiff]
 
 
@@ -735,12 +749,15 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
             _storage_diffs.append(_diff)
         return _storage_diffs
 
-    def declared_contract_hashes() -> List[Felt]:
+    def deprecated_declared_classes() -> List[Felt]:
         return [
             rpc_felt(contract)
             for contract in state_update.state_diff.old_declared_contracts
-        ] + [
-            rpc_felt(class_hash_pair.compiled_class_hash)
+        ]
+
+    def declared_classes() -> List[RpcDeclaredClass]:
+        return [
+            RpcDeclaredClass(class_hash=rpc_felt(class_hash_pair.class_hash), compiled_class_hash=rpc_felt(class_hash_pair.compiled_class_hash))
             for class_hash_pair in state_update.state_diff.declared_classes
         ]
 
@@ -754,6 +771,12 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
             _contracts.append(diff)
         return _contracts
 
+    def replaced_classes() -> List[RpcReplacedClass]:
+        return [
+            RpcReplacedClass(contract_address=rpc_felt(replaced_class.address), class_hash=rpc_felt(replaced_class.class_hash))
+            for replaced_class in state_update.state_diff.replaced_classes
+        ]
+
     def nonces() -> List[RpcNonceDiff]:
         return [
             RpcNonceDiff(contract_address=rpc_felt(address), nonce=rpc_felt(nonce))
@@ -766,8 +789,10 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
         "old_root": rpc_root(state_update.old_root.hex()),
         "state_diff": {
             "storage_diffs": storage_diffs(),
-            "declared_contract_hashes": declared_contract_hashes(),
+            "deprecated_declared_classes": deprecated_declared_classes(),
+            "declared_classes": declared_classes(),
             "deployed_contracts": deployed_contracts(),
+            "replaced_classes": replaced_classes(),
             "nonces": nonces(),
         },
     }
