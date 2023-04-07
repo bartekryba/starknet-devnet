@@ -28,7 +28,7 @@ def test_get_storage_at(deploy_info):
     )
     storage = resp["result"]
 
-    assert storage == "0x045"
+    assert storage == "0x45"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -50,8 +50,8 @@ def test_get_storage_at_old_block(deploy_info):
         )
         return resp["result"]
 
-    assert get_storage({"block_number": 0}) == "0x00"
-    assert get_storage({"block_hash": "0x00"}) == "0x00"
+    assert get_storage({"block_number": 0}) == "0x0"
+    assert get_storage({"block_hash": "0x0"}) == "0x0"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
@@ -65,7 +65,7 @@ def test_get_storage_at_raises_on_incorrect_contract():
     ex = rpc_call(
         "starknet_getStorageAt",
         params={
-            "contract_address": "0x00",
+            "contract_address": "0x0",
             "key": rpc_felt(key),
             "block_id": block_id,
         },
@@ -88,12 +88,12 @@ def test_get_storage_at_raises_on_incorrect_key(deploy_info):
         "starknet_getStorageAt",
         params={
             "contract_address": rpc_felt(contract_address),
-            "key": "0x00",
+            "key": "0x0",
             "block_id": "latest",
         },
     )
 
-    assert response["result"] == "0x00"
+    assert response["result"] == "0x0"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

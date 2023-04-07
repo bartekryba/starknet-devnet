@@ -306,7 +306,7 @@ def test_get_nonce():
         method="starknet_getNonce",
         params={"block_id": "latest", "contract_address": rpc_felt(account_address)},
     )
-    assert initial_resp["result"] == "0x00"
+    assert initial_resp["result"] == "0x0"
 
     deployment_info = deploy_empty_contract()
 
@@ -321,7 +321,7 @@ def test_get_nonce():
         method="starknet_getNonce",
         params={"block_id": "latest", "contract_address": rpc_felt(account_address)},
     )
-    assert final_resp["result"] == "0x01"
+    assert final_resp["result"] == "0x1"
 
 
 @pytest.mark.usefixtures("devnet_with_account")
