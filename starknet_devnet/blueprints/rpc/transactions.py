@@ -124,10 +124,8 @@ async def add_declare_transaction(
     """
     Submit a new class declaration transaction
     """
-    declare_transaction = make_declare(declare_transaction)
-
     class_hash, transaction_hash = await state.starknet_wrapper.declare(
-        external_tx=declare_transaction
+        external_tx=make_declare(declare_transaction)
     )
     return RpcDeclareTransactionResult(
         transaction_hash=rpc_felt(transaction_hash),

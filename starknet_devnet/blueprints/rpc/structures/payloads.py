@@ -4,13 +4,16 @@ RPC payload structures
 
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 from marshmallow.exceptions import MarshmallowError
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
 from starkware.starknet.public.abi import AbiEntryType
 from starkware.starknet.services.api.contract_class.contract_class import (
+    ContractClass,
+    ContractEntryPoint,
     DeprecatedCompiledClass,
+    EntryPointType,
 )
 from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
@@ -26,6 +29,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionType,
 )
 from starkware.starknet.services.api.gateway.transaction import (
+    Declare,
     Deploy,
     DeployAccount,
     DeprecatedDeclare,
@@ -140,17 +144,28 @@ class RpcBroadcastedInvokeTxnV1(RpcBroadcastedTxnCommon):
 RpcBroadcastedInvokeTxn = Union[RpcBroadcastedInvokeTxnV0, RpcBroadcastedInvokeTxnV1]
 
 
-class RpcBroadcastedDeclareTxn(RpcBroadcastedTxnCommon):
-    """TypedDict for RpcBroadcastedDeclareTxn"""
+class RpcBroadcastedDeclareTxnV1(RpcBroadcastedTxnCommon):
+    """TypedDict for RpcBroadcastDeclareTxnV1"""
+
+    contract_class: RpcDeprecatedContractClass
+    sender_address: Address
+
+
+class RpcBroadcastedDeclareTxnV2(RpcBroadcastedTxnCommon):
+    """TypedDict for RpcBroadcastedDeclareTxnV2"""
 
     contract_class: RpcContractClass
     sender_address: Address
+    compiled_class_hash: Felt
+
+
+RpcBroadcastedDeclareTxn = Union[RpcBroadcastedDeclareTxnV1, RpcBroadcastedDeclareTxnV2]
 
 
 class RpcBroadcastedDeployTxn(TypedDict):
     """TypedDict for RpcBroadcastedDeployTxn"""
 
-    contract_class: RpcContractClass
+    contract_class: RpcDeprecatedContractClass
     version: NumAsHex
     type: RpcTxnType
     contract_address_salt: Felt
@@ -431,7 +446,7 @@ def make_invoke_function(invoke_transaction: RpcBroadcastedInvokeTxn) -> InvokeF
     return invoke_function
 
 
-def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> DeprecatedDeclare:
+def make_declare_v1(declare_transaction: RpcBroadcastedDeclareTxnV1) -> DeprecatedDeclare:
     """
     Convert RpcBroadcastedDeclareTxn to DeprecatedDeclare
     """
@@ -455,6 +470,34 @@ def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> DeprecatedDec
         signature=[int(sig, 16) for sig in declare_transaction["signature"]],
     )
     return declare_tx
+
+
+def make_declare_v2(declare_transaction: RpcBroadcastedDeclareTxnV2) -> Declare:
+    nonce = declare_transaction.get("nonce")
+
+    contract_class = declare_transaction["contract_class"]
+
+    if "abi" not in contract_class:
+        contract_class["abi"] = ""
+
+    contract_class = ContractClass.load(contract_class)
+
+    return Declare(
+        contract_class=contract_class,
+        compiled_class_hash=int(declare_transaction["compiled_class_hash"], 16),
+        sender_address=int(declare_transaction["sender_address"], 16),
+        nonce=int(nonce, 16) if nonce is not None else 0,
+        version=int(declare_transaction["version"], 16),
+        max_fee=int(declare_transaction["max_fee"], 16),
+        signature=[int(sig, 16) for sig in declare_transaction["signature"]],
+    )
+
+
+def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> Union[Declare, DeprecatedDeclare]:
+    if "compiled_class_hash" in declare_transaction:
+        return make_declare_v2(declare_transaction)
+    else:
+        return make_declare_v1(declare_transaction)
 
 
 def make_deploy(deploy_transaction: RpcBroadcastedDeployTxn) -> Deploy:
@@ -504,19 +547,33 @@ def make_deploy_account(
     return deploy_account_tx
 
 
-class EntryPoint(TypedDict):
-    """TypedDict for rpc contract class entry point"""
+class DeprecatedEntryPoint(TypedDict):
+    """TypedDict for deprecated rpc contract class entry point"""
 
     offset: NumAsHex
     selector: Felt
 
 
+class DeprecatedEntryPoints(TypedDict):
+    """TypedDict for deprecated rpc contract class entry points"""
+
+    CONSTRUCTOR: List[DeprecatedEntryPoint]
+    EXTERNAL: List[DeprecatedEntryPoint]
+    L1_HANDLER: List[DeprecatedEntryPoint]
+
+
+class SierraEntryPoint(TypedDict):
+    """TypedDict for sierra entry point"""
+    selector: Felt
+    function_idx: int
+
+
 class EntryPoints(TypedDict):
     """TypedDict for rpc contract class entry points"""
 
-    CONSTRUCTOR: List[EntryPoint]
-    EXTERNAL: List[EntryPoint]
-    L1_HANDLER: List[EntryPoint]
+    CONSTRUCTOR: List[SierraEntryPoint]
+    EXTERNAL: List[SierraEntryPoint]
+    L1_HANDLER: List[SierraEntryPoint]
 
 
 FunctionAbiType = Literal["function", "l1_handler"]
@@ -621,17 +678,27 @@ def rpc_abi_entry(abi_entry: AbiEntryType) -> AbiEntry:
     return function_map[abi_entry["type"]](abi_entry)
 
 
+class RpcDeprecatedContractClass(TypedDict):
+    """
+    TypedDict for deprecated rpc contract class
+    """
+
+    program: str
+    entry_points_by_type: DeprecatedEntryPoints
+    abi: Optional[List[AbiEntry]]
+
+
 class RpcContractClass(TypedDict):
     """
     TypedDict for rpc contract class
     """
-
-    program: str
+    sierra_program: List[Felt]
+    contract_class_version: str
     entry_points_by_type: EntryPoints
-    abi: Optional[List[AbiEntry]]
+    abi: Optional[str]
 
 
-def rpc_contract_class(contract_class: DeprecatedCompiledClass) -> RpcContractClass:
+def rpc_deprecated_contract_class(contract_class: DeprecatedCompiledClass) -> RpcDeprecatedContractClass:
     """
     Convert gateway contract class to rpc contract class
     """
@@ -640,15 +707,15 @@ def rpc_contract_class(contract_class: DeprecatedCompiledClass) -> RpcContractCl
         _program = contract_class.program.Schema().dump(contract_class.program)
         return compress_program(_program)
 
-    def entry_points_by_type() -> EntryPoints:
-        _entry_points: EntryPoints = {
+    def entry_points_by_type() -> DeprecatedEntryPoints:
+        _entry_points: DeprecatedEntryPoints = {
             "CONSTRUCTOR": [],
             "EXTERNAL": [],
             "L1_HANDLER": [],
         }
         for typ, entry_points in contract_class.entry_points_by_type.items():
             for entry_point in entry_points:
-                _entry_point: EntryPoint = {
+                _entry_point: DeprecatedEntryPoint = {
                     "selector": rpc_felt(entry_point.selector),
                     "offset": hex(entry_point.offset),
                 }
@@ -660,12 +727,56 @@ def rpc_contract_class(contract_class: DeprecatedCompiledClass) -> RpcContractCl
             return None
         return [rpc_abi_entry(abi_entry_type) for abi_entry_type in contract_class.abi]
 
-    _contract_class: RpcContractClass = {
+    _contract_class: RpcDeprecatedContractClass = {
         "program": program(),
         "entry_points_by_type": entry_points_by_type(),
         "abi": abi(),
     }
     return _contract_class
+
+
+def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
+    """
+    Convert gateway contract class v1 to rpc contract class v1
+    """
+    def program() -> List[Felt]:
+        return list(map(rpc_felt, contract_class.sierra_program))
+
+    def entry_points_by_type() -> EntryPoints:
+        def map_entry_point(entry_point: ContractEntryPoint) -> SierraEntryPoint:
+            return SierraEntryPoint(
+                selector=rpc_felt(entry_point.selector),
+                function_idx=entry_point.function_idx
+            )
+
+        def get_entry_points_of_type(type: EntryPointType) -> List[SierraEntryPoint]:
+            return list(map(map_entry_point, contract_class.entry_points_by_type[type]))
+
+        _entry_points: EntryPoints = {
+            "CONSTRUCTOR": get_entry_points_of_type(EntryPointType.CONSTRUCTOR),
+            "EXTERNAL": get_entry_points_of_type(EntryPointType.EXTERNAL),
+            "L1_HANDLER": get_entry_points_of_type(EntryPointType.L1_HANDLER),
+        }
+
+        return _entry_points
+
+    _contract_class: RpcContractClass = {
+        "sierra_program": program(),
+        "entry_points_by_type": entry_points_by_type(),
+        "abi": contract_class.abi,
+        "contract_class_version": contract_class.contract_class_version
+    }
+
+    return _contract_class
+
+
+def load_contract_class(contract_class_dict: Dict) -> Union[RpcContractClass, RpcDeprecatedContractClass]:
+    if "sierra_program" in contract_class_dict.keys():
+        loaded_class = ContractClass.load(contract_class_dict)
+        return rpc_contract_class(loaded_class)
+    else:
+        loaded_class = DeprecatedCompiledClass.load(contract_class_dict)
+        return rpc_deprecated_contract_class(loaded_class)
 
 
 class RpcStorageEntry(TypedDict):

@@ -31,10 +31,10 @@ from starkware.starknet.services.api.gateway.transaction_utils import decompress
 
 from starknet_devnet.account_util import get_execute_args
 from starknet_devnet.blueprints.rpc.structures.payloads import (
-    RpcBroadcastedDeclareTxn,
+    RpcBroadcastedDeclareTxnV1,
     RpcBroadcastedInvokeTxnV0,
     RpcBroadcastedInvokeTxnV1,
-    RpcContractClass,
+    RpcDeprecatedContractClass,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.constants import DEFAULT_GAS_PRICE, LEGACY_RPC_TX_VERSION
@@ -126,13 +126,13 @@ def test_estimate_fee_declare_v0(declare_content):
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
 
-    rpc_contract_class = RpcContractClass(
+    rpc_contract_class = RpcDeprecatedContractClass(
         program=contract_class["program"],
         entry_points_by_type=contract_class["entry_points_by_type"],
         abi=contract_class["abi"],
     )
 
-    declare_transaction = RpcBroadcastedDeclareTxn(
+    declare_transaction = RpcBroadcastedDeclareTxnV1(
         type=declare_content["type"],
         max_fee=rpc_felt(declare_content["max_fee"]),
         version=hex(LEGACY_RPC_TX_VERSION),
@@ -160,7 +160,7 @@ def test_estimate_fee_declare(declare_content):
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
 
-    rpc_contract_class = RpcContractClass(
+    rpc_contract_class = RpcDeprecatedContractClass(
         program=contract_class["program"],
         entry_points_by_type=contract_class["entry_points_by_type"],
         abi=contract_class["abi"],
@@ -180,7 +180,7 @@ def test_estimate_fee_declare(declare_content):
     )
     signature = _get_signature(tx_hash, PREDEPLOYED_ACCOUNT_PRIVATE_KEY)
 
-    declare_transaction = RpcBroadcastedDeclareTxn(
+    declare_transaction = RpcBroadcastedDeclareTxnV1(
         type=declare_content["type"],
         max_fee=rpc_felt(declare_content["max_fee"]),
         version=hex(SUPPORTED_RPC_TX_VERSION),
