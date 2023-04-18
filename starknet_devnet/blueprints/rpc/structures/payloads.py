@@ -450,7 +450,7 @@ def make_declare_v1(
     declare_transaction: RpcBroadcastedDeclareTxnV1,
 ) -> DeprecatedDeclare:
     """
-    Convert RpcBroadcastedDeclareTxn to DeprecatedDeclare
+    Convert RpcBroadcastedDeclareTxnV1 to DeprecatedDeclare
     """
     contract_class = declare_transaction["contract_class"]
     if "abi" not in contract_class:
@@ -475,6 +475,7 @@ def make_declare_v1(
 
 
 def make_declare_v2(declare_transaction: RpcBroadcastedDeclareTxnV2) -> Declare:
+    """Convert RpcBroadcastedDeclareTxnV2 to Declare"""
     nonce = declare_transaction.get("nonce")
 
     contract_class = declare_transaction["contract_class"]
@@ -498,10 +499,10 @@ def make_declare_v2(declare_transaction: RpcBroadcastedDeclareTxnV2) -> Declare:
 def make_declare(
     declare_transaction: RpcBroadcastedDeclareTxn,
 ) -> Union[Declare, DeprecatedDeclare]:
+    """Convert RpcBroadcastedDeclareTxn to Declare or DeprecatedDeclare"""
     if "compiled_class_hash" in declare_transaction:
         return make_declare_v2(declare_transaction)
-    else:
-        return make_declare_v1(declare_transaction)
+    return make_declare_v1(declare_transaction)
 
 
 def make_deploy(deploy_transaction: RpcBroadcastedDeployTxn) -> Deploy:
@@ -758,8 +759,15 @@ def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
                 function_idx=entry_point.function_idx,
             )
 
-        def get_entry_points_of_type(type: EntryPointType) -> List[SierraEntryPoint]:
-            return list(map(map_entry_point, contract_class.entry_points_by_type[type]))
+        def get_entry_points_of_type(
+            entry_point_type: EntryPointType,
+        ) -> List[SierraEntryPoint]:
+            return list(
+                map(
+                    map_entry_point,
+                    contract_class.entry_points_by_type[entry_point_type],
+                )
+            )
 
         _entry_points: EntryPoints = {
             "CONSTRUCTOR": get_entry_points_of_type(EntryPointType.CONSTRUCTOR),
@@ -779,15 +787,16 @@ def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
     return _contract_class
 
 
-def load_contract_class(
+def contract_class_from_dict(
     contract_class_dict: Dict,
 ) -> Union[RpcContractClass, RpcDeprecatedContractClass]:
+    """Convert contract class dict to RpcContractClass or RpcDeprecatedContractClass"""
     if "sierra_program" in contract_class_dict.keys():
         loaded_class = ContractClass.load(contract_class_dict)
         return rpc_contract_class(loaded_class)
-    else:
-        loaded_class = DeprecatedCompiledClass.load(contract_class_dict)
-        return rpc_deprecated_contract_class(loaded_class)
+
+    loaded_class = DeprecatedCompiledClass.load(contract_class_dict)
+    return rpc_deprecated_contract_class(loaded_class)
 
 
 class RpcStorageEntry(TypedDict):

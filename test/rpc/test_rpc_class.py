@@ -5,7 +5,6 @@ import json
 from test.account import deploy, send_declare_v2
 from test.rpc.rpc_utils import rpc_call
 from test.shared import (
-    EXPECTED_CLASS_1_HASH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,

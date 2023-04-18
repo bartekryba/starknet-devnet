@@ -513,7 +513,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
 
-    rpc_contract_class = RpcDeprecatedContractClass(
+    contract_class = RpcDeprecatedContractClass(
         program="",
         entry_points_by_type=contract_class["entry_points_by_type"],
         abi=contract_class["abi"],
@@ -525,7 +525,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
         version=hex(SUPPORTED_RPC_TX_VERSION),
         signature=[rpc_felt(sig) for sig in declare_content["signature"]],
         nonce=rpc_felt(declare_content["nonce"]),
-        contract_class=rpc_contract_class,
+        contract_class=contract_class,
         sender_address=rpc_felt(declare_content["sender_address"]),
     )
 
@@ -539,6 +539,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
 
 @pytest.mark.usefixtures("devnet_with_account")
 def test_add_declare_transaction_v2():
+    """Add declare transaction v2"""
     contract_class, _, compiled_class_hash = load_cairo1_contract()
 
     max_fee = int(4e16)
@@ -583,13 +584,13 @@ def test_add_declare_transaction_v2():
 @pytest.mark.usefixtures("devnet_with_account")
 def test_add_declare_transaction_v1(declare_content):
     """
-    Add declare transaction
+    Add declare transaction v1
     """
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
     max_fee = int(4e16)
 
-    rpc_contract_class = RpcDeprecatedContractClass(
+    contract_class = RpcDeprecatedContractClass(
         program=contract_class["program"],
         entry_points_by_type=contract_class["entry_points_by_type"],
         abi=contract_class["abi"],
@@ -612,7 +613,7 @@ def test_add_declare_transaction_v1(declare_content):
         version=hex(SUPPORTED_RPC_TX_VERSION),
         signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(nonce),
-        contract_class=rpc_contract_class,
+        contract_class=contract_class,
         sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
     )
 
@@ -635,7 +636,7 @@ def test_add_declare_transaction_v0(declare_content):
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
 
-    rpc_contract_class = RpcDeprecatedContractClass(
+    contract_class = RpcDeprecatedContractClass(
         program=contract_class["program"],
         entry_points_by_type=contract_class["entry_points_by_type"],
         abi=contract_class["abi"],
@@ -647,7 +648,7 @@ def test_add_declare_transaction_v0(declare_content):
         version=hex(LEGACY_RPC_TX_VERSION),
         signature=[],
         nonce=rpc_felt(0),
-        contract_class=rpc_contract_class,
+        contract_class=contract_class,
         sender_address=rpc_felt(1),
     )
 
@@ -672,14 +673,14 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
     calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
     pad_zero_entry_points(contract_definition["entry_points_by_type"])
 
-    rpc_contract_class = RpcDeprecatedContractClass(
+    contract_class = RpcDeprecatedContractClass(
         program="",
         entry_points_by_type=contract_definition["entry_points_by_type"],
         abi=contract_definition["abi"],
     )
 
     deploy_transaction = RpcBroadcastedDeployTxn(
-        contract_class=rpc_contract_class,
+        contract_class=contract_class,
         version=hex(SUPPORTED_RPC_TX_VERSION),
         type=deploy_content["type"],
         contract_address_salt=salt,
@@ -705,14 +706,14 @@ def test_add_deploy_transaction(deploy_content, version):
     salt = rpc_felt(deploy_content["contract_address_salt"])
     calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
 
-    rpc_contract_class = RpcDeprecatedContractClass(
+    contract_class = RpcDeprecatedContractClass(
         program=contract_definition["program"],
         entry_points_by_type=contract_definition["entry_points_by_type"],
         abi=contract_definition["abi"],
     )
 
     deploy_transaction = RpcBroadcastedDeployTxn(
-        contract_class=rpc_contract_class,
+        contract_class=contract_class,
         version=hex(version),
         type=deploy_content["type"],
         contract_address_salt=salt,

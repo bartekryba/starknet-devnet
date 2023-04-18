@@ -4,7 +4,7 @@ RPC classes endpoints
 from starkware.starkware_utils.error_handling import StarkException
 
 from starknet_devnet.blueprints.rpc.schema import validate_schema
-from starknet_devnet.blueprints.rpc.structures.payloads import load_contract_class
+from starknet_devnet.blueprints.rpc.structures.payloads import contract_class_from_dict
 from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
     BlockId,
@@ -30,7 +30,7 @@ async def get_class(block_id: BlockId, class_hash: Felt) -> dict:
     except StarknetDevnetException as ex:
         raise RpcError.from_spec_name("CLASS_HASH_NOT_FOUND") from ex
 
-    return load_contract_class(result_dict)
+    return contract_class_from_dict(result_dict)
 
 
 @validate_schema("getClassHashAt")
@@ -64,4 +64,4 @@ async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
     except StarkException as ex:
         raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
 
-    return load_contract_class(result_dict)
+    return contract_class_from_dict(result_dict)
