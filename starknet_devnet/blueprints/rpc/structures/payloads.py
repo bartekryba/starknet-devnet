@@ -446,7 +446,9 @@ def make_invoke_function(invoke_transaction: RpcBroadcastedInvokeTxn) -> InvokeF
     return invoke_function
 
 
-def make_declare_v1(declare_transaction: RpcBroadcastedDeclareTxnV1) -> DeprecatedDeclare:
+def make_declare_v1(
+    declare_transaction: RpcBroadcastedDeclareTxnV1,
+) -> DeprecatedDeclare:
     """
     Convert RpcBroadcastedDeclareTxn to DeprecatedDeclare
     """
@@ -493,7 +495,9 @@ def make_declare_v2(declare_transaction: RpcBroadcastedDeclareTxnV2) -> Declare:
     )
 
 
-def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> Union[Declare, DeprecatedDeclare]:
+def make_declare(
+    declare_transaction: RpcBroadcastedDeclareTxn,
+) -> Union[Declare, DeprecatedDeclare]:
     if "compiled_class_hash" in declare_transaction:
         return make_declare_v2(declare_transaction)
     else:
@@ -564,6 +568,7 @@ class DeprecatedEntryPoints(TypedDict):
 
 class SierraEntryPoint(TypedDict):
     """TypedDict for sierra entry point"""
+
     selector: Felt
     function_idx: int
 
@@ -692,13 +697,16 @@ class RpcContractClass(TypedDict):
     """
     TypedDict for rpc contract class
     """
+
     sierra_program: List[Felt]
     contract_class_version: str
     entry_points_by_type: EntryPoints
     abi: Optional[str]
 
 
-def rpc_deprecated_contract_class(contract_class: DeprecatedCompiledClass) -> RpcDeprecatedContractClass:
+def rpc_deprecated_contract_class(
+    contract_class: DeprecatedCompiledClass,
+) -> RpcDeprecatedContractClass:
     """
     Convert gateway contract class to rpc contract class
     """
@@ -739,6 +747,7 @@ def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
     """
     Convert gateway contract class v1 to rpc contract class v1
     """
+
     def program() -> List[Felt]:
         return list(map(rpc_felt, contract_class.sierra_program))
 
@@ -746,7 +755,7 @@ def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
         def map_entry_point(entry_point: ContractEntryPoint) -> SierraEntryPoint:
             return SierraEntryPoint(
                 selector=rpc_felt(entry_point.selector),
-                function_idx=entry_point.function_idx
+                function_idx=entry_point.function_idx,
             )
 
         def get_entry_points_of_type(type: EntryPointType) -> List[SierraEntryPoint]:
@@ -764,13 +773,15 @@ def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
         "sierra_program": program(),
         "entry_points_by_type": entry_points_by_type(),
         "abi": contract_class.abi,
-        "contract_class_version": contract_class.contract_class_version
+        "contract_class_version": contract_class.contract_class_version,
     }
 
     return _contract_class
 
 
-def load_contract_class(contract_class_dict: Dict) -> Union[RpcContractClass, RpcDeprecatedContractClass]:
+def load_contract_class(
+    contract_class_dict: Dict,
+) -> Union[RpcContractClass, RpcDeprecatedContractClass]:
     if "sierra_program" in contract_class_dict.keys():
         loaded_class = ContractClass.load(contract_class_dict)
         return rpc_contract_class(loaded_class)
@@ -809,12 +820,14 @@ class RpcNonceDiff(TypedDict):
 
 class RpcDeclaredClass(TypedDict):
     """TypedDict for rpc declared class"""
+
     class_hash: Felt
     compiled_class_hash: Felt
 
 
 class RpcReplacedClass(TypedDict):
     """TypedDict for contract which class was replaced"""
+
     contract_address: Felt
     class_hash: Felt
 
@@ -868,7 +881,10 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
 
     def declared_classes() -> List[RpcDeclaredClass]:
         return [
-            RpcDeclaredClass(class_hash=rpc_felt(class_hash_pair.class_hash), compiled_class_hash=rpc_felt(class_hash_pair.compiled_class_hash))
+            RpcDeclaredClass(
+                class_hash=rpc_felt(class_hash_pair.class_hash),
+                compiled_class_hash=rpc_felt(class_hash_pair.compiled_class_hash),
+            )
             for class_hash_pair in state_update.state_diff.declared_classes
         ]
 
@@ -884,7 +900,10 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
 
     def replaced_classes() -> List[RpcReplacedClass]:
         return [
-            RpcReplacedClass(contract_address=rpc_felt(replaced_class.address), class_hash=rpc_felt(replaced_class.class_hash))
+            RpcReplacedClass(
+                contract_address=rpc_felt(replaced_class.address),
+                class_hash=rpc_felt(replaced_class.class_hash),
+            )
             for replaced_class in state_update.state_diff.replaced_classes
         ]
 

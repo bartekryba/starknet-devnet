@@ -565,7 +565,7 @@ def test_add_declare_transaction_v2():
         version=rpc_felt(version),
         nonce=rpc_felt(nonce),
         max_fee=rpc_felt(max_fee),
-        signature=list(map(rpc_felt, signature))
+        signature=list(map(rpc_felt, signature)),
     )
 
     resp = rpc_call(

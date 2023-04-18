@@ -4,8 +4,6 @@ Tests RPC miscellaneous
 
 from __future__ import annotations
 
-from starkware.starknet.business_logic.transaction.objects import compute_class_hash
-
 from test.account import declare, invoke, send_declare_v2
 from test.rpc.rpc_utils import deploy_and_invoke_storage_contract, rpc_call
 from test.rpc.test_data.get_events import GET_EVENTS_TEST_DATA, create_get_events_filter
@@ -31,6 +29,7 @@ from test.util import (
 )
 
 import pytest
+from starkware.starknet.business_logic.transaction.objects import compute_class_hash
 from starkware.starknet.public.abi import get_storage_var_address
 
 from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
@@ -84,7 +83,7 @@ def test_get_state_update():
     deployer_address = deployer_deploy_info["address"]
 
     resp = rpc_call("starknet_getStateUpdate", params={"block_id": "latest"})
-    
+
     diff_after_deploy = resp["result"]["state_diff"]
 
     deployer_diff = diff_after_deploy["deployed_contracts"][0]
@@ -113,7 +112,7 @@ def test_get_state_update_declare_v2():
         sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         sender_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    
+
     resp = rpc_call("starknet_getStateUpdate", params={"block_id": "latest"})
 
     declared_class = resp["result"]["state_diff"]["declared_classes"][0]
