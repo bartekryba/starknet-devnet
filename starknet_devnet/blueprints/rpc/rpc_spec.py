@@ -440,6 +440,12 @@ RPC_SPECIFICATION = r"""
                     "$ref": "#/components/errors/CONTRACT_NOT_FOUND"
                 },
                 {
+                    "$ref": "#/components/errors/INVALID_MESSAGE_SELECTOR"
+                },
+                {
+                    "$ref": "#/components/errors/INVALID_CALL_DATA"
+                },
+                {
                     "$ref": "#/components/errors/CONTRACT_ERROR"
                 },
                 {
@@ -487,6 +493,12 @@ RPC_SPECIFICATION = r"""
             "errors": [
                 {
                     "$ref": "#/components/errors/CONTRACT_NOT_FOUND"
+                },
+                {
+                    "$ref": "#/components/errors/INVALID_MESSAGE_SELECTOR"
+                },
+                {
+                    "$ref": "#/components/errors/INVALID_CALL_DATA"
                 },
                 {
                     "$ref": "#/components/errors/CONTRACT_ERROR"
@@ -2327,6 +2339,14 @@ RPC_SPECIFICATION = r"""
             "CONTRACT_NOT_FOUND": {
                 "code": 20,
                 "message": "Contract not found"
+            },
+            "INVALID_MESSAGE_SELECTOR": {
+                "code": 21,
+                "message": "Invalid message selector"
+            },
+            "INVALID_CALL_DATA": {
+                "code": 22,
+                "message": "Invalid call data"
             },
             "BLOCK_NOT_FOUND": {
                 "code": 24,
