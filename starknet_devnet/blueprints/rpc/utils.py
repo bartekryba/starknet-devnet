@@ -75,7 +75,7 @@ async def assert_block_id_is_valid(block_id: BlockId) -> None:
 
 def rpc_felt(value: Union[int, str]) -> Felt:
     """
-    Convert value to 0x0 prefixed felt
+    Convert value to 0x prefixed felt
     The value can be base 10 integer, base 10 string or base 16 string
     """
     if isinstance(value, str):
@@ -84,6 +84,12 @@ def rpc_felt(value: Union[int, str]) -> Felt:
     if value == 0:
         return "0x0"
     return "0x" + hex(value).lstrip("0x")
+
+
+def rpc_storage_key(value: Union[int, str]) -> Felt:
+    value = rpc_felt(value)
+
+    return "0x0" + value.lstrip("0x")
 
 
 def gateway_felt(value: Union[int, str]) -> str:
