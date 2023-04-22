@@ -53,8 +53,6 @@ def test_call_raises_on_incorrect_contract_address():
         },
     )
 
-    print(f"Error: {ex}")
-
     assert ex["error"] == {"code": 20, "message": "Contract not found"}
 
 

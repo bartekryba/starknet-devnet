@@ -26,7 +26,7 @@ def create_get_events_filter(
     from_block: Union[int, str] = 0,
     to_block: Union[int, str] = "latest",
     address: str = rpc_felt(EXPECTED_FEE_TOKEN_ADDRESS),
-    keys: Optional[List[str]] = None,
+    keys: Optional[List[List[str]]] = [],
     chunk_size: int = 10,
     continuation_token: Optional[str] = None
 ) -> dict:
@@ -44,8 +44,6 @@ def create_get_events_filter(
 
     :return: `filter` param matching the specification.
     """
-    if keys is None:
-        keys = [rpc_felt(FEE_CHARGED_EVENT_KEY)]
     filter_body = {
         "from_block": parse_block_delimiter_parameter(from_block),
         "address": address,
@@ -97,8 +95,8 @@ GET_EVENTS_TEST_DATA = [
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
         create_get_events_filter(
             keys=[
-                rpc_felt(FEE_CHARGED_EVENT_KEY),
-                rpc_felt(INCREASE_BALANCE_CALLED_EVENT_KEY),
+                [rpc_felt(FEE_CHARGED_EVENT_KEY)],
+                [rpc_felt(INCREASE_BALANCE_CALLED_EVENT_KEY)],
             ]
         ),
         [

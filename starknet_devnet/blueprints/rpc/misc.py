@@ -41,11 +41,20 @@ def check_address(address, event):
     return event.from_address == int(address, 0)
 
 
-def check_keys(keys, event):
+def check_keys(keys: List[List[Felt]], event):
     """
     Check keys.
     """
-    return bool(set(event.keys) & set(keys))
+    if not keys:
+        return True
+
+    # Check every key in an event against related list of accepted values.
+    # Empty list means that all keys should be accepted.
+    for key, filter_keys in zip(event.keys, keys):
+        if keys and key not in filter_keys:
+            return False
+
+    return True
 
 
 def _get_events_from_block(block: StarknetBlock, address, keys):
@@ -139,7 +148,11 @@ async def get_events(
         ) from ex
 
     address = filter.get("address")
-    keys = [int(k, 0) for k in filter.get("keys")]
+
+    if filter.get("keys"):
+        keys = [[int(key, 0) for key in keys] for keys in filter.get("keys")]
+    else:
+        keys = None
     # Optional parameter
     continuation_token = int(filter.get("continuation_token", "0"))
 
