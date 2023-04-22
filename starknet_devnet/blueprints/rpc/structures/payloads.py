@@ -401,15 +401,20 @@ class RpcFeeEstimate(TypedDict):
     overall_fee: NumAsHex
 
 
-def rpc_fee_estimate(fee_estimate: FeeEstimationInfo) -> dict:
+def rpc_fee_estimate(fee_estimates: List[FeeEstimationInfo]) -> list:
     """
     Convert gateway estimate_fee response to rpc_fee_estimate
     """
-    result: RpcFeeEstimate = {
-        "gas_consumed": hex(fee_estimate.gas_usage),
-        "gas_price": hex(fee_estimate.gas_price),
-        "overall_fee": hex(fee_estimate.overall_fee),
-    }
+
+    result = [
+        {
+            "gas_consumed": hex(fee_estimate.gas_usage),
+            "gas_price": hex(fee_estimate.gas_price),
+            "overall_fee": hex(fee_estimate.overall_fee),
+        }
+        for fee_estimate in fee_estimates
+    ]
+
     return result
 
 

@@ -194,23 +194,20 @@ def make_transaction(txn: RpcBroadcastedTxn) -> AccountTransaction:
 
 
 @validate_schema("estimateFee")
-async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
+async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> list:
     """
     Estimate the fee for a given Starknet transaction
     """
     await assert_block_id_is_valid(block_id)
-    transaction = make_transaction(request)
+    transactions = list(map(make_transaction, request))
     try:
-        _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(
-            transaction,
+        _, fee_response = await state.starknet_wrapper.calculate_traces_and_fees(
+            transactions,
             skip_validate=False,
             block_id=block_id,
         )
     except StarkException as ex:
-        if "entry_point_selector" in request and (
-            f"Entry point {gateway_felt(request['entry_point_selector'])} not found"
-            in ex.message
-        ):
+        if "Entry point" in ex.message and "not found" in ex.message:
             raise RpcError.from_spec_name("INVALID_MESSAGE_SELECTOR") from ex
         if "While handling calldata" in ex.message:
             raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
