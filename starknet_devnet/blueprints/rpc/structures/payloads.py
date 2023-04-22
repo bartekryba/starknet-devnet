@@ -162,16 +162,6 @@ class RpcBroadcastedDeclareTxnV2(RpcBroadcastedTxnCommon):
 RpcBroadcastedDeclareTxn = Union[RpcBroadcastedDeclareTxnV1, RpcBroadcastedDeclareTxnV2]
 
 
-class RpcBroadcastedDeployTxn(TypedDict):
-    """TypedDict for RpcBroadcastedDeployTxn"""
-
-    contract_class: RpcDeprecatedContractClass
-    version: NumAsHex
-    type: RpcTxnType
-    contract_address_salt: Felt
-    constructor_calldata: List[Felt]
-
-
 class RpcBroadcastedDeployAccountTxn(RpcBroadcastedTxnCommon):
     """TypedDict for BroadcastedDeployAccountTxn"""
 
@@ -182,7 +172,6 @@ class RpcBroadcastedDeployAccountTxn(RpcBroadcastedTxnCommon):
 
 # rpc transaction's representation when it's sent to the sequencer (but not yet in a block)
 RpcBroadcastedTxn = Union[
-    RpcBroadcastedDeployTxn,
     RpcBroadcastedDeclareTxn,
     RpcBroadcastedInvokeTxn,
     RpcBroadcastedDeployAccountTxn,
@@ -508,31 +497,6 @@ def make_declare(
     if "compiled_class_hash" in declare_transaction:
         return make_declare_v2(declare_transaction)
     return make_declare_v1(declare_transaction)
-
-
-def make_deploy(deploy_transaction: RpcBroadcastedDeployTxn) -> Deploy:
-    """
-    Convert RpcBroadcastedDeployTxn to Deploy
-    """
-    contract_class = deploy_transaction["contract_class"]
-    if "abi" not in contract_class:
-        contract_class["abi"] = []
-
-    try:
-        contract_class["program"] = decompress_program(contract_class["program"])
-        contract_class = DeprecatedCompiledClass.load(contract_class)
-    except (StarkException, TypeError, MarshmallowError) as ex:
-        raise RpcError(code=50, message="Invalid contract class") from ex
-
-    deploy_tx = Deploy(
-        contract_address_salt=int(deploy_transaction["contract_address_salt"], 16),
-        constructor_calldata=[
-            int(data, 16) for data in deploy_transaction["constructor_calldata"]
-        ],
-        contract_definition=contract_class,
-        version=int(deploy_transaction["version"], 16),
-    )
-    return deploy_tx
 
 
 def make_deploy_account(
