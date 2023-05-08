@@ -4,7 +4,12 @@ Tests RPC transactions
 
 from __future__ import annotations
 
-from test.account import _get_signature, declare, get_nonce
+from test.account import (
+    _get_signature,
+    declare,
+    declare_and_deploy_with_chargeable,
+    get_nonce,
+)
 from test.rpc.conftest import prepare_deploy_account_tx, rpc_deploy_account_from_gateway
 from test.rpc.rpc_utils import (
     deploy_and_invoke_storage_contract,
@@ -16,6 +21,7 @@ from test.rpc.rpc_utils import (
 from test.shared import (
     ABI_PATH,
     CONTRACT_PATH,
+    EXPECTED_UDC_ADDRESS,
     INCORRECT_GENESIS_BLOCK_HASH,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
@@ -23,7 +29,7 @@ from test.shared import (
     SUPPORTED_RPC_TX_VERSION,
 )
 from test.test_declare_v2 import load_cairo1_contract
-from test.util import assert_tx_status, call, deploy, load_contract_class, mint, send_tx
+from test.util import assert_tx_status, call, load_contract_class, mint, send_tx
 from typing import List
 
 import pytest
@@ -40,6 +46,7 @@ from starkware.starknet.public.abi import (
     get_selector_from_name,
     get_storage_var_address,
 )
+from starkware.starknet.services.api.gateway.transaction_utils import compress_program
 from starkware.starknet.wallets.open_zeppelin import sign_invoke_tx
 
 from starknet_devnet.account_util import get_execute_args
@@ -79,9 +86,12 @@ def test_get_transaction_by_hash_deploy(deploy_info):
     """
     Get transaction by hash
     """
-    block = get_block_with_transaction(deploy_info["transaction_hash"])
+    block = get_block_with_transaction(deploy_info["tx_hash"])
     block_tx = block["transactions"][0]
-    transaction_hash: str = deploy_info["transaction_hash"]
+    transaction_hash: str = deploy_info["tx_hash"]
+
+    signature: Signature = [rpc_felt(sig) for sig in block_tx["signature"]]
+    calldata: List[str] = [rpc_felt(data) for data in block_tx["calldata"]]
 
     resp = rpc_call(
         "starknet_getTransactionByHash",
@@ -91,11 +101,13 @@ def test_get_transaction_by_hash_deploy(deploy_info):
 
     assert transaction == {
         "transaction_hash": rpc_felt(transaction_hash),
-        "class_hash": rpc_felt(block_tx["class_hash"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
         "type": rpc_txn_type(block_tx["type"]),
-        "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
-        "constructor_calldata": ["0x45"],
+        "calldata": calldata,
+        "max_fee": rpc_felt(block_tx["max_fee"]),
+        "nonce": rpc_felt(block_tx["nonce"]),
+        "signature": signature,
+        "sender_address": rpc_felt(block_tx["sender_address"]),
     }
 
 
@@ -211,9 +223,9 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
     """
     Get transaction by block id and transaction index
     """
-    block = get_block_with_transaction(deploy_info["transaction_hash"])
+    block = get_block_with_transaction(deploy_info["tx_hash"])
     block_tx = block["transactions"][0]
-    transaction_hash: str = deploy_info["transaction_hash"]
+    transaction_hash: str = deploy_info["tx_hash"]
     block_number: str = block["block_number"]
     index: int = 0
 
@@ -228,13 +240,16 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
     )
     transaction = resp["result"]
 
+    signature: Signature = [rpc_felt(sig) for sig in block_tx["signature"]]
+    calldata: List[str] = [rpc_felt(data) for data in block_tx["calldata"]]
+
     assert transaction == {
-        "class_hash": rpc_felt(block_tx["class_hash"]),
-        "constructor_calldata": [
-            rpc_felt(tx) for tx in block_tx["constructor_calldata"]
-        ],
-        "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
+        "calldata": calldata,
+        "signature": signature,
+        "sender_address": rpc_felt(block_tx["sender_address"]),
         "transaction_hash": rpc_felt(transaction_hash),
+        "max_fee": rpc_felt(block_tx["max_fee"]),
+        "nonce": rpc_felt(block_tx["nonce"]),
         "type": rpc_txn_type(block_tx["type"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
     }
@@ -261,7 +276,7 @@ def test_get_transaction_by_block_id_and_index_raises_on_incorrect_index(deploy_
     """
     Get transaction by block hash and incorrect transaction index
     """
-    block = get_block_with_transaction(deploy_info["transaction_hash"])
+    block = get_block_with_transaction(deploy_info["tx_hash"])
     block_hash: str = block["block_hash"]
 
     ex = rpc_call(
@@ -363,7 +378,7 @@ def test_get_deploy_transaction_receipt(deploy_info):
     """
     Get transaction receipt
     """
-    transaction_hash: str = deploy_info["transaction_hash"]
+    transaction_hash: str = deploy_info["tx_hash"]
     block = get_block_with_transaction(transaction_hash)
 
     resp = rpc_call(
@@ -372,16 +387,25 @@ def test_get_deploy_transaction_receipt(deploy_info):
     )
     receipt = resp["result"]
 
+    assert len(block["transaction_receipts"]) == 1
+    block_receipt = block["transaction_receipts"][0]
+
     assert receipt == {
-        "contract_address": rpc_felt(deploy_info["address"]),
         "transaction_hash": rpc_felt(transaction_hash),
-        "actual_fee": rpc_felt(0),
+        "actual_fee": rpc_felt(block_receipt["actual_fee"]),
         "status": "ACCEPTED_ON_L2",
         "block_hash": rpc_felt(block["block_hash"]),
         "block_number": block["block_number"],
-        "type": "DEPLOY",
+        "type": "INVOKE",
         "messages_sent": [],
-        "events": [],
+        "events": [
+            {
+                "from_address": rpc_felt(event["from_address"]),
+                "data": [rpc_felt(data) for data in event["data"]],
+                "keys": [rpc_felt(key) for key in event["keys"]],
+            }
+            for event in block_receipt["events"]
+        ],
     }
 
 
@@ -426,7 +450,9 @@ def test_add_invoke_transaction():
     Add invoke transaction
     """
     initial_balance, amount1, amount2 = 100, 13, 56
-    deploy_dict = deploy(CONTRACT_PATH, [str(initial_balance)])
+    deploy_dict = declare_and_deploy_with_chargeable(
+        CONTRACT_PATH, [str(initial_balance)]
+    )
     contract_address = deploy_dict["address"]
     max_fee = int(4e16)
 
@@ -473,7 +499,9 @@ def test_add_invoke_transaction_v0():
     Add invoke transaction with tx v0
     """
     initial_balance, amount1, amount2 = 100, 13, 56
-    deploy_dict = deploy(CONTRACT_PATH, [str(initial_balance)])
+    deploy_dict = declare_and_deploy_with_chargeable(
+        CONTRACT_PATH, [str(initial_balance)]
+    )
     contract_address = deploy_dict["address"]
 
     invoke_transaction = RpcBroadcastedInvokeTxnV0(
@@ -580,24 +608,21 @@ def test_add_declare_transaction_v2():
     assert is_felt(receipt["class_hash"])
 
 
-@pytest.mark.usefixtures("devnet_with_account")
-def test_add_declare_transaction_v1(declare_content):
-    """
-    Add declare transaction v1
-    """
-    contract_class = declare_content["contract_class"]
-    pad_zero_entry_points(contract_class["entry_points_by_type"])
-    max_fee = int(4e16)
+def _add_declare_transaction():
+    contract_class = load_contract_class(CONTRACT_PATH)
+    contract_class_dump = contract_class.dump()
 
-    contract_class = RpcDeprecatedContractClass(
-        program=contract_class["program"],
-        entry_points_by_type=contract_class["entry_points_by_type"],
-        abi=contract_class["abi"],
+    pad_zero_entry_points(contract_class_dump["entry_points_by_type"])
+    rpc_contract_class = RpcDeprecatedContractClass(
+        program=compress_program(contract_class_dump["program"]),
+        entry_points_by_type=contract_class_dump["entry_points_by_type"],
+        abi=contract_class_dump["abi"],
     )
+    max_fee = int(4e16)
 
     nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
     tx_hash = calculate_deprecated_declare_transaction_hash(
-        contract_class=load_contract_class(CONTRACT_PATH),
+        contract_class=contract_class,
         chain_id=StarknetChainId.TESTNET.value,
         sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
         max_fee=max_fee,
@@ -607,12 +632,12 @@ def test_add_declare_transaction_v1(declare_content):
     signature = _get_signature(tx_hash, PREDEPLOYED_ACCOUNT_PRIVATE_KEY)
 
     declare_transaction = RpcBroadcastedDeclareTxnV1(
-        type=declare_content["type"],
+        type="DECLARE",
         max_fee=rpc_felt(max_fee),
         version=hex(SUPPORTED_RPC_TX_VERSION),
         signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(nonce),
-        contract_class=contract_class,
+        contract_class=rpc_contract_class,
         sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
     )
 
@@ -620,11 +645,18 @@ def test_add_declare_transaction_v1(declare_content):
         "starknet_addDeclareTransaction",
         params={"declare_transaction": declare_transaction},
     )
-    receipt = resp["result"]
+    return resp["result"]
+
+
+@pytest.mark.usefixtures("devnet_with_account")
+def test_add_declare_transaction_v1():
+    """Add declare transaction"""
+    receipt = _add_declare_transaction()
 
     assert set(receipt.keys()) == set(["transaction_hash", "class_hash"])
     assert is_felt(receipt["transaction_hash"])
     assert is_felt(receipt["class_hash"])
+    assert_tx_status(receipt["transaction_hash"], "ACCEPTED_ON_L2")
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -660,6 +692,58 @@ def test_add_declare_transaction_v0(declare_content):
     assert set(receipt.keys()) == set(["transaction_hash", "class_hash"])
     assert is_felt(receipt["transaction_hash"])
     assert is_felt(receipt["class_hash"])
+
+
+@pytest.mark.usefixtures("devnet_with_account")
+def test_deploy():
+    """Deploy contract.cairo via UDC"""
+    declaration_receipt = _add_declare_transaction()
+
+    initial_balance = 10
+    ctor_args = [initial_balance]
+
+    calls = [
+        (
+            EXPECTED_UDC_ADDRESS,
+            "deployContract",
+            [
+                int(declaration_receipt["class_hash"], 16),
+                42,  # salt
+                0,  # unique
+                len(ctor_args),
+                *ctor_args,
+            ],
+        )
+    ]
+
+    nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
+    max_fee = int(4e16)
+    signature, execute_calldata = get_execute_args(
+        calls=calls,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        nonce=nonce,
+        version=SUPPORTED_RPC_TX_VERSION,
+        max_fee=max_fee,
+    )
+
+    invoke_transaction = RpcBroadcastedInvokeTxnV1(
+        type="INVOKE",
+        max_fee=rpc_felt(max_fee),
+        version=hex(SUPPORTED_RPC_TX_VERSION),
+        signature=[rpc_felt(sig) for sig in signature],
+        nonce=rpc_felt(nonce),
+        sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
+        calldata=[rpc_felt(data) for data in execute_calldata],
+    )
+
+    resp = rpc_call(
+        "starknet_addInvokeTransaction",
+        params={"invoke_transaction": invoke_transaction},
+    )
+    deployment_receipt = resp["result"]
+    assert_tx_status(deployment_receipt["transaction_hash"], "ACCEPTED_ON_L2")
+    # to assert storage of the newly deployed contract, we would need to calculate it or extract it from UDC event
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -722,7 +806,9 @@ def test_add_deploy_account_transaction(deploy_account_details):
 
     # deploy a contract for testing
     init_balance = 10
-    contract_deploy_info = deploy(contract=CONTRACT_PATH, inputs=[str(init_balance)])
+    contract_deploy_info = declare_and_deploy_with_chargeable(
+        contract=CONTRACT_PATH, inputs=[str(init_balance)]
+    )
     contract_address = contract_deploy_info["address"]
 
     # increase balance of test contract

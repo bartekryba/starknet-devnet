@@ -2,7 +2,9 @@
 sidebar_position: 13
 ---
 
-# Predeployed accounts
+# Accounts
+
+## Predeployed accounts
 
 Devnet predeploys `--accounts` with some `--initial-balance`. To hide the details of these accounts use `--hide-predeployed-accounts`. The accounts get charged for transactions according to the `--gas-price`. A `--seed` can be used to regenerate the same set of accounts. Read more about it in the [Run section](run.md).
 
@@ -10,9 +12,9 @@ To get the code of the account (currently OpenZeppelin [v0.5.1](https://github.c
 
 - `GET /get_code?contractAddress=<ACCOUNT_ADDRESS>`
 - [Starknet CLI](https://www.cairo-lang.org/docs/hello_starknet/cli.html#get-code): `starknet get_code --contract_address <ACCOUNT_ADDRESS> --feeder_gateway_url <DEVNET_URL>`
-- [GitHub repository](https://github.com/Shard-Labs/cairo-contracts/tree/fix-account-query-version)
+- [GitHub repository](https://github.com/0xSpaceShard/cairo-contracts/tree/fix-account-query-version)
 
-You can use the accounts in e.g. [**starknet-hardhat-plugin**](https://github.com/Shard-Labs/starknet-hardhat-plugin) via:
+You can use the accounts in e.g. [**starknet-hardhat-plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin) via:
 
 ```typescript
 const account = await starknet.OpenZeppelin.getAccountFromAddress(
@@ -62,4 +64,18 @@ Response:
   "amount": 123...456,
   "unit": "wei"
 }
+```
+
+## Argent
+
+If you attempt to deploy an Argent account to Devnet (e.g. via the Argent X browser extension), you may get an error like:
+
+```
+Class with hash 0x25ec026985a3bf9d0cc1fe17326b245dfdc3ff89b8fde106542a3ea56c5a918 is not declared
+```
+
+That means the ArgentProxy class is not declared. You can either declare it manually or run Devnet in [forked mode](fork.md), forking it from a network where this class is declared, e.g. alpha-goerli:
+
+```
+$ starknet-devnet --fork-network alpha-goerli
 ```

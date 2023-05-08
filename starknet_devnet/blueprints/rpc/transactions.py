@@ -167,6 +167,8 @@ def make_transaction(txn: RpcBroadcastedTxn) -> AccountTransaction:
         return make_invoke_function(txn)
     if txn_type == "DECLARE":
         return make_declare(txn)
+    if txn_type == "DEPLOY":
+        raise RpcError(code=-1, message="DEPLOY transactions are deprecated")
     if txn_type == "DEPLOY_ACCOUNT":
         return make_deploy_account(txn)
     raise NotImplementedError(f"Unexpected type {txn_type}.")

@@ -4,7 +4,7 @@ Tests RPC miscellaneous
 
 from __future__ import annotations
 
-from test.account import declare, invoke, send_declare_v2
+from test.account import declare, invoke, send_declare_v2, declare_and_deploy_with_chargeable
 from test.rpc.rpc_utils import deploy_and_invoke_storage_contract, rpc_call
 from test.rpc.test_data.get_events import GET_EVENTS_TEST_DATA, create_get_events_filter
 from test.shared import (
@@ -24,7 +24,6 @@ from test.util import (
     assert_get_events_response,
     assert_hex_equal,
     assert_transaction,
-    deploy,
     devnet_in_background,
 )
 
@@ -75,9 +74,9 @@ def test_get_state_update():
 
     # Deploy the deployer - also deploys a contract of the declared class using the deploy syscall
     initial_balance_in_constructor = "5"
-    deployer_deploy_info = deploy(
+    deployer_deploy_info = declare_and_deploy_with_chargeable(
         contract=DEPLOYER_CONTRACT_PATH,
-        inputs=[contract_class_hash, initial_balance_in_constructor],
+        inputs=[int(contract_class_hash, 16), initial_balance_in_constructor],
     )
     deployer_class_hash = hex(get_class_hash_at_path(DEPLOYER_CONTRACT_PATH))
     deployer_address = deployer_deploy_info["address"]
@@ -94,10 +93,8 @@ def test_get_state_update():
     assert_hex_equal(deployed_contract_diff["class_hash"], contract_class_hash)
     # deployed_contract_diff["address"] is a random value
 
-    # deployer expected to be declared
-    assert diff_after_deploy["deprecated_declared_classes"] == [
-        rpc_felt(deployer_class_hash)
-    ]
+    # deployer expected to be declared one block earier, so nothing new declared
+    assert diff_after_deploy["deprecated_declared_classes"] == []
 
 
 @pytest.mark.usefixtures("devnet_with_account")
@@ -231,7 +228,7 @@ def test_get_events_continuation_token():
     """
     Test RPC get_events returning continuation token.
     """
-    deploy_info = deploy(EVENTS_CONTRACT_PATH)
+    deploy_info = declare_and_deploy_with_chargeable(EVENTS_CONTRACT_PATH)
     total_invokes = 3
     for i in range(total_invokes):
         invoke(
@@ -239,34 +236,44 @@ def test_get_events_continuation_token():
             account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
             private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         )
+
+    # origin (being 0) + declare + deploy = first invoke block is 3
+    first_invoke_block = 3
+
     resp = rpc_call(
         "starknet_getEvents",
-        params=create_get_events_filter(chunk_size=total_invokes),
+        params=create_get_events_filter(
+            from_block=first_invoke_block, chunk_size=total_invokes
+        ),
     )
     assert_get_events_response(resp, expected_block_length=total_invokes)
 
     resp = rpc_call(
         "starknet_getEvents",
-        params=create_get_events_filter(chunk_size=1),
+        params=create_get_events_filter(from_block=first_invoke_block, chunk_size=1),
     )
     assert_get_events_response(resp, expected_block_length=1, expected_token="1")
 
     resp = rpc_call(
         "starknet_getEvents",
-        params=create_get_events_filter(chunk_size=1, continuation_token="1"),
+        params=create_get_events_filter(
+            from_block=first_invoke_block, chunk_size=1, continuation_token="1"
+        ),
     )
     assert_get_events_response(resp, expected_block_length=1, expected_token="2")
 
     resp = rpc_call(
         "starknet_getEvents",
-        params=create_get_events_filter(chunk_size=1, continuation_token="2"),
+        params=create_get_events_filter(
+            from_block=first_invoke_block, chunk_size=1, continuation_token="2"
+        ),
     )
     assert_get_events_response(resp, expected_block_length=1)
 
     resp = rpc_call(
         "starknet_getEvents",
         params=create_get_events_filter(
-            from_block=0, to_block=1, chunk_size=3, continuation_token="0"
+            from_block=0, to_block=0, chunk_size=3, continuation_token="0"
         ),
     )
     assert_get_events_response(resp, expected_block_length=0)
@@ -282,17 +289,17 @@ def test_get_events(input_data, expected_data):
     """
     Test RPC get_events.
     """
-    deploy_info = deploy(EVENTS_CONTRACT_PATH)
+    deploy_info = declare_and_deploy_with_chargeable(EVENTS_CONTRACT_PATH)
     for i in range(2):
         invoke(
             calls=[(deploy_info["address"], "increase_balance", [i])],
             account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
             private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         )
-    resp = rpc_call("starknet_getEvents", params=input_data)
-    assert len(expected_data) == len(resp["result"]["events"])
-    for i, data in enumerate(expected_data):
-        assert resp["result"]["events"][i]["data"] == data
+
+    events_resp = rpc_call("starknet_getEvents", params=input_data)
+    actual_data = [event["data"] for event in events_resp["result"]["events"]]
+    assert actual_data == expected_data
 
 
 @pytest.mark.usefixtures("devnet_with_account")

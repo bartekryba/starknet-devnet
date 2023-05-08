@@ -30,7 +30,6 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 from starkware.starknet.services.api.gateway.transaction import (
     Declare,
-    Deploy,
     DeployAccount,
     DeprecatedDeclare,
     InvokeFunction,

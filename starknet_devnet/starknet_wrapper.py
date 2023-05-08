@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
@@ -25,9 +26,6 @@ from starkware.starknet.core.os.contract_address.contract_address import (
 from starkware.starknet.core.os.contract_class.compiled_class_hash import (
     compute_compiled_class_hash,
 )
-from starkware.starknet.core.os.transaction_hash.transaction_hash import (
-    calculate_deploy_transaction_hash,
-)
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.contract_class.contract_class import (
@@ -54,7 +52,6 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 from starkware.starknet.services.api.gateway.transaction import (
     Declare,
-    Deploy,
     DeployAccount,
     DeprecatedDeclare,
     InvokeFunction,
@@ -114,6 +111,7 @@ enable_pickling()
 
 DEFAULT_BLOCK_ID = LATEST_BLOCK_ID
 
+
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-locals
@@ -146,7 +144,7 @@ class StarknetWrapper:
         self.__latest_state = None
         self._contract_classes: Dict[int, Union[DeprecatedCompiledClass, ContractClass]]
         """If v2 - store sierra, otherwise store old class; needed for get_class_by_hash"""
-
+        self.genesis_block_number = None
         self._compiler = (
             CustomContractClassCompiler(config.cairo_compiler_manifest)
             if config.cairo_compiler_manifest
@@ -215,6 +213,7 @@ class StarknetWrapper:
             deploy_data.append((account.class_hash, account.address))
 
         for class_hash, contract_address in deploy_data:
+            # this might be the only place where DEPLOY tx is used
             internal_deploy = create_empty_internal_deploy(
                 transaction_hash, class_hash, contract_address
             )
@@ -229,6 +228,9 @@ class StarknetWrapper:
         state_update = await self.update_pending_state()
         await self.blocks.generate_pending(transactions, state, state_update)
         block = await self.generate_latest_block(block_hash=0)
+
+        # Set the genesis block number
+        self.genesis_block_number = block.block_number
 
         for transaction in transactions:
             transaction.set_block(block=block)
@@ -543,53 +545,6 @@ class StarknetWrapper:
             tx_handler.internal_tx.hash_value,
         )
 
-    async def deploy(self, deploy_transaction: Deploy) -> Tuple[int, int]:
-        """
-        Deploys the contract specified with `deploy_transaction`.
-        Returns (contract_address, transaction_hash).
-        """
-
-        contract_class = deploy_transaction.contract_definition
-
-        internal_tx: InternalDeploy = InternalDeploy.from_external(
-            deploy_transaction, self.get_state().general_config
-        )
-
-        contract_address = internal_tx.contract_address
-
-        if await self.is_deployed(contract_address):
-            tx_hash = calculate_deploy_transaction_hash(
-                version=deploy_transaction.version,
-                contract_address=contract_address,
-                constructor_calldata=deploy_transaction.constructor_calldata,
-                chain_id=self.get_state().general_config.chain_id.value,
-            )
-            return contract_address, tx_hash
-
-        tx_hash = internal_tx.hash_value
-
-        async with self.__get_transaction_handler(
-            external_tx=deploy_transaction
-        ) as tx_handler:
-            tx_handler.internal_tx = internal_tx
-            state = self.get_state().state
-            state.contract_classes[internal_tx.class_hash] = contract_class
-            self._contract_classes[internal_tx.class_hash] = contract_class
-
-            tx_handler.execution_info = await self.__deploy(internal_tx)
-            tx_handler.internal_calls = (
-                tx_handler.execution_info.call_info.internal_calls
-            )
-
-            tx_handler.deployed_contracts.append(
-                ContractAddressHashPair(
-                    address=contract_address,
-                    class_hash=internal_tx.class_hash,
-                )
-            )
-
-        return contract_address, tx_hash
-
     async def invoke(self, external_tx: InvokeFunction):
         """Perform invoke according to specifications in `transaction`."""
         state = self.get_state()
@@ -617,14 +572,13 @@ class StarknetWrapper:
 
         assert isinstance(block_id, dict)
         if block_id.get("block_hash"):
-            # takes care of parsing
-            block = await self.blocks.get_by_hash(block_id["block_hash"])
-            return self.blocks.get_state(block.block_number)
+            numeric_hash = self.blocks.get_numeric_hash(block_id.get("block_hash"))
+            return self.blocks.get_state(numeric_hash)
 
-        block_number = block_id.get("block_number")
         try:
-            parsed_id = int(block_number)
-            return self.blocks.get_state(parsed_id)
+            block_number = block_id.get("block_number")
+            block = await self.blocks.get_by_number(int(block_number))
+            return self.blocks.get_state(block.block_hash)
         except ValueError:
             pass
 
@@ -988,3 +942,71 @@ class StarknetWrapper:
         cached_state = self.get_state().state
         class_hash = await cached_state.get_class_hash_at(address)
         return bool(class_hash)
+
+    async def abort_blocks(self, starting_block: StarknetBlock) -> str:
+        """
+        Abort blocks.
+        """
+        # Check if genesis block can be aborted.
+        if starting_block.block_number == self.genesis_block_number:
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID,
+                message="Aborting genesis block is not supported.",
+            )
+
+        # Check if blocks can be aborted in fork mode.
+        if (
+            self.config.fork_block
+            and self.config.fork_block >= starting_block.block_number
+        ):
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID,
+                message="Aborting forked blocks is not supported.",
+            )
+
+        # Create new block with pending transactions if possible.
+        # We need to store them so later we can change the status to REJECTED.
+        if self.blocks.is_block_pending():
+            await self.generate_latest_block()
+
+        aborted_blocks = []
+        last_block = await self.blocks.get_last_block()
+
+        # Before the while loop to abort blocks, check if block numbers are set.
+        if not (last_block.block_number and starting_block.block_number):
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.BLOCK_NOT_FOUND,
+                status_code=400,
+                message="Block cannot be aborted. Make sure you are aborting an accepted block.",
+            )
+
+        # Abort blocks from latest to starting (iterating backwards).
+        reached_starting_block = False
+        while not reached_starting_block:
+            reached_starting_block = (
+                last_block.block_number == starting_block.block_number
+            )
+
+            # Abort latest_block.
+            aborted_block_hash = await self.blocks.abort_latest_block(
+                hex(last_block.block_hash)
+            )
+
+            # Reject transactions.
+            for transaction in last_block.transactions:
+                await self.transactions.reject_transaction(
+                    tx_hash=transaction.transaction_hash
+                )
+
+            aborted_blocks.append(hex(aborted_block_hash))
+            parent = await self.blocks.get_by_hash(hex(last_block.parent_block_hash))
+
+            if parent.block_number is not None:
+                last_block = parent
+            else:
+                break
+
+        # Revert state.
+        self.starknet.state = self.blocks.get_state(last_block.block_hash)
+
+        return aborted_blocks
