@@ -58,6 +58,7 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedInvokeTxnV1,
     RpcDeprecatedContractClass,
     rpc_contract_class,
+    rpc_deprecated_contract_class,
 )
 from starknet_devnet.blueprints.rpc.structures.types import Signature, rpc_txn_type
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
@@ -71,7 +72,7 @@ def pad_zero_entry_points(entry_points: DeprecatedEntryPoints) -> None:
 
     def pad_selector(entry_point):
         return {
-            "offset": entry_point["offset"],
+            "offset": rpc_felt(entry_point["offset"]),
             "selector": rpc_felt(entry_point["selector"]),
         }
 
@@ -613,6 +614,7 @@ def _add_declare_transaction():
     contract_class_dump = contract_class.dump()
 
     pad_zero_entry_points(contract_class_dump["entry_points_by_type"])
+
     rpc_contract_class = RpcDeprecatedContractClass(
         program=compress_program(contract_class_dump["program"]),
         entry_points_by_type=contract_class_dump["entry_points_by_type"],

@@ -331,5 +331,5 @@ def test_schema_with_optional_values():
             },
         }
 
-        params = {"key": "0x1"}
+        params = {"key": "0x01"}
         _assert_valid_rpc_request(**params, method_name="starknet_method")

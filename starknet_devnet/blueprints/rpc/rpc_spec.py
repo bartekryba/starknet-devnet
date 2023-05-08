@@ -821,7 +821,13 @@ RPC_SPECIFICATION = r"""
                             }
                         }
                     }
-                }
+                },
+                "required": [
+                    "from_block",
+                    "to_block",
+                    "address",
+                    "keys"
+                ]
             },
             "BLOCK_ID": {
                 "title": "Block hash, number or tag",
