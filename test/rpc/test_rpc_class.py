@@ -186,16 +186,6 @@ def test_get_class():
     assert contract_class["entry_points_by_type"] == EXPECTED_ENTRY_POINTS_CAIRO_1
     assert contract_class["abi"] == json.dumps(EXPECTED_ABI_CAIRO_1)
 
-    resp = rpc_call(
-        "starknet_getClassAt",
-        params={"block_id": "latest", "contract_address": deploy_info["address"]},
-    )
-
-    contract_class = resp["result"]
-
-    assert contract_class["entry_points_by_type"] == EXPECTED_ENTRY_POINTS_CAIRO_1
-    assert contract_class["abi"] == json.dumps(EXPECTED_ABI_CAIRO_1)
-
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_get_class_at():
