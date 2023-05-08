@@ -131,7 +131,7 @@ def test_estimate_fee_declare_v0(declare_content):
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
 
-    rpc_contract_class = RpcDeprecatedContractClass(
+    _rpc_contract_class = RpcDeprecatedContractClass(
         program=contract_class["program"],
         entry_points_by_type=contract_class["entry_points_by_type"],
         abi=contract_class["abi"],
@@ -143,7 +143,7 @@ def test_estimate_fee_declare_v0(declare_content):
         version=hex(LEGACY_RPC_TX_VERSION),
         signature=[],
         nonce=rpc_felt(0),
-        contract_class=rpc_contract_class,
+        contract_class=_rpc_contract_class,
         sender_address=rpc_felt(DEFAULT_DECLARE_SENDER_ADDRESS),
     )
 
@@ -165,7 +165,7 @@ def test_estimate_fee_declare_v1(declare_content):
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
 
-    rpc_contract_class = RpcDeprecatedContractClass(
+    _rpc_contract_class = RpcDeprecatedContractClass(
         program=contract_class["program"],
         entry_points_by_type=copy.deepcopy(contract_class["entry_points_by_type"]),
         abi=contract_class["abi"],
@@ -191,7 +191,7 @@ def test_estimate_fee_declare_v1(declare_content):
         version=hex(SUPPORTED_RPC_TX_VERSION),
         signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(nonce),
-        contract_class=rpc_contract_class,
+        contract_class=_rpc_contract_class,
         sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
     )
 
@@ -204,6 +204,9 @@ def test_estimate_fee_declare_v1(declare_content):
 
 @pytest.mark.usefixtures("devnet_with_account")
 def test_estimate_fee_declare_v2():
+    """
+    Test estimating fee for v2 declare transaction.
+    """
     contract_class, _, compiled_class_hash = load_cairo1_contract()
 
     version = 2

@@ -58,7 +58,6 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedInvokeTxnV1,
     RpcDeprecatedContractClass,
     rpc_contract_class,
-    rpc_deprecated_contract_class,
 )
 from starknet_devnet.blueprints.rpc.structures.types import Signature, rpc_txn_type
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
@@ -615,7 +614,7 @@ def _add_declare_transaction():
 
     pad_zero_entry_points(contract_class_dump["entry_points_by_type"])
 
-    rpc_contract_class = RpcDeprecatedContractClass(
+    _rpc_contract_class = RpcDeprecatedContractClass(
         program=compress_program(contract_class_dump["program"]),
         entry_points_by_type=contract_class_dump["entry_points_by_type"],
         abi=contract_class_dump["abi"],
@@ -639,7 +638,7 @@ def _add_declare_transaction():
         version=hex(SUPPORTED_RPC_TX_VERSION),
         signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(nonce),
-        contract_class=rpc_contract_class,
+        contract_class=_rpc_contract_class,
         sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
     )
 

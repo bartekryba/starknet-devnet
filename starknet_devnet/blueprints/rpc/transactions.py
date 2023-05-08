@@ -32,7 +32,6 @@ from starknet_devnet.blueprints.rpc.structures.responses import (
 from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError, TxnHash
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_valid,
-    gateway_felt,
     get_block_by_block_id,
     rpc_felt,
 )

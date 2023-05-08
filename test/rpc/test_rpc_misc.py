@@ -4,7 +4,12 @@ Tests RPC miscellaneous
 
 from __future__ import annotations
 
-from test.account import declare, invoke, send_declare_v2, declare_and_deploy_with_chargeable
+from test.account import (
+    declare,
+    declare_and_deploy_with_chargeable,
+    invoke,
+    send_declare_v2,
+)
 from test.rpc.rpc_utils import deploy_and_invoke_storage_contract, rpc_call
 from test.rpc.test_data.get_events import GET_EVENTS_TEST_DATA, create_get_events_filter
 from test.shared import (

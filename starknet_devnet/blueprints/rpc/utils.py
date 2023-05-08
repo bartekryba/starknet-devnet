@@ -87,6 +87,10 @@ def rpc_felt(value: Union[int, str]) -> Felt:
 
 
 def rpc_storage_key(value: Union[int, str]) -> Felt:
+    """
+    Convert value to 0x0 prefixed storage key.
+    The value can be base 10 integer, base 10 string or base 16 string
+    """
     value = rpc_felt(value)
 
     return "0x0" + value.lstrip("0x")
