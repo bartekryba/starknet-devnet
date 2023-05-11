@@ -27,6 +27,7 @@ from .shared import (
 )
 from .test_state_update import get_state_update
 from .util import (
+    assert_contract_code_present,
     assert_hex_equal,
     assert_tx_status,
     assert_undeclared_class,
@@ -38,20 +39,27 @@ from .util import (
 )
 
 
-def assert_declare_v2_accepted(resp: requests.Response):
+def assert_declare_v2_accepted(resp: requests.Response, feeder_gateway_url=APP_URL):
     """Assert status of declaration is accepted"""
     assert resp.status_code == 200
 
     declare_tx_hash = resp.json()["transaction_hash"]
-    assert_tx_status(tx_hash=declare_tx_hash, expected_tx_status="ACCEPTED_ON_L2")
+    assert_tx_status(
+        tx_hash=declare_tx_hash,
+        expected_tx_status="ACCEPTED_ON_L2",
+        feeder_gateway_url=feeder_gateway_url,
+    )
 
 
-def _assert_already_declared(declaration_resp: requests.Response):
+def assert_already_declared(
+    declaration_resp: requests.Response, feeder_gateway_url=APP_URL
+):
+    """Assert that response informs of an already declared class"""
     assert declaration_resp.status_code == 200, declaration_resp.json()
     declare_tx_hash = declaration_resp.json()["transaction_hash"]
 
     tx_resp = requests.get(
-        f"{APP_URL}/feeder_gateway/get_transaction",
+        f"{feeder_gateway_url}/feeder_gateway/get_transaction",
         params={"transactionHash": declare_tx_hash},
     )
     assert tx_resp.status_code == 200, tx_resp.json()
@@ -120,7 +128,7 @@ def test_redeclaring_v2():
         sender_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
 
-    _assert_already_declared(
+    assert_already_declared(
         send_declare_v2(
             contract_class=contract_class,
             compiled_class_hash=compiled_class_hash,
@@ -229,7 +237,7 @@ def test_v2_contract_interaction():
 
 @pytest.mark.declare
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_v2_get_full_contract():
+def test_getting_contract_artifacts():
     """Test for declare, deploy and get full contract"""
 
     contract_class, _, compiled_class_hash = load_cairo1_contract()
@@ -257,7 +265,11 @@ def test_v2_get_full_contract():
         tx_hash=deploy_info["tx_hash"], expected_tx_status="ACCEPTED_ON_L2"
     )
 
+    # get_full_contract
     full_contract = get_full_contract_raw(contract_address=deploy_info["address"])
     assert full_contract.status_code == 200
     sierra = ContractClass.load(full_contract.json())
     assert load_sierra(CONTRACT_1_PATH) == sierra
+
+    # get_code
+    assert_contract_code_present(deploy_info["address"])
