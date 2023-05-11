@@ -115,4 +115,4 @@ def is_felt(value: str) -> bool:
     """
     Check whether value is a Felt
     """
-    return bool(re.match(r"^0x[a-fA-F0-9]{1,63}$", value))
+    return bool(re.match(r"^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$", value))

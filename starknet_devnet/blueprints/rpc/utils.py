@@ -83,7 +83,7 @@ def rpc_felt(value: Union[int, str]) -> Felt:
 
     if value == 0:
         return "0x0"
-    return "0x" + hex(value).lstrip("0x")
+    return hex(value)
 
 
 def rpc_storage_key(value: Union[int, str]) -> Felt:
@@ -111,7 +111,7 @@ def rpc_root(root: str) -> Felt:
     """
     Convert 0 prefixed root to 0x prefixed root
     """
-    return "0x" + (root.lstrip("0") or "0")
+    return rpc_felt(root)
 
 
 def rpc_response(message_id: int, content: dict) -> dict:

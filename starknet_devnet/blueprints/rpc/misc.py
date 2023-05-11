@@ -45,9 +45,6 @@ def check_keys(keys: List[List[Felt]], event):
     """
     Check keys.
     """
-    if not keys:
-        return True
-
     # Check every key in an event against related list of accepted values.
     # Empty list means that all keys should be accepted.
     for key, filter_keys in zip(event.keys, keys):
@@ -149,10 +146,10 @@ async def get_events(
 
     address = filter.get("address")
 
-    if filter.get("keys"):
+    if filter.get("keys") is not None:
         keys = [[int(key, 0) for key in keys] for keys in filter.get("keys")]
     else:
-        keys = None
+        keys = []
     # Optional parameter
     continuation_token = int(filter.get("continuation_token", "0"))
 
