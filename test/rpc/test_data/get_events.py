@@ -45,7 +45,7 @@ def create_get_events_filter(
     :return: `filter` param matching the specification.
     """
     if keys is None:
-        keys = []
+        keys = [[FEE_CHARGED_EVENT_KEY]]
 
     filter_body = {
         "from_block": parse_block_delimiter_parameter(from_block),
