@@ -41,7 +41,7 @@ def check_address(address, event):
     return event.from_address == int(address, 0)
 
 
-def check_keys(keys: List[List[Felt]], event):
+def _check_keys(keys: List[List[Felt]], event):
     """
     Check keys.
 
@@ -65,7 +65,7 @@ def _get_events_from_block(block: StarknetBlock, address, keys):
     for receipt, event in [
         (r, e) for r in block.transaction_receipts for e in r.events
     ]:
-        if check_keys(keys, event) and check_address(address, event):
+        if _check_keys(keys, event) and check_address(address, event):
             _event: EmittedEvent = {
                 "from_address": rpc_felt(event.from_address),
                 "keys": [rpc_felt(e) for e in event.keys],
