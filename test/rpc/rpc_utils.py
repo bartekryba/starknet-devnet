@@ -5,6 +5,7 @@ Utilities for RPC tests
 from __future__ import annotations
 
 import re
+from starknet_devnet.blueprints.rpc.schema import felt_pattern_from_schema
 from test.account import declare_and_deploy_with_chargeable, invoke
 from test.settings import APP_URL
 from test.shared import (
@@ -115,4 +116,4 @@ def is_felt(value: str) -> bool:
     """
     Check whether value is a Felt
     """
-    return bool(re.match(r"^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$", value))
+    return bool(re.match(felt_pattern_from_schema(), value))

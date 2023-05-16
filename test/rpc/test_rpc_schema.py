@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from starkware.starknet.public.abi import get_selector_from_name
 
-from starknet_devnet.blueprints.rpc.schema import _assert_valid_rpc_request
+from starknet_devnet.blueprints.rpc.schema import _assert_valid_rpc_request, felt_pattern_from_schema
 from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
@@ -333,3 +333,9 @@ def test_schema_with_optional_values():
 
         params = {"key": "0x01"}
         _assert_valid_rpc_request(**params, method_name="starknet_method")
+
+
+def test_felt_pattern_from_schema():
+    pattern = felt_pattern_from_schema()
+
+    assert pattern != ""

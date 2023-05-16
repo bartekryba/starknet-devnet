@@ -190,6 +190,13 @@ class ResponseValidationErrorWrapper(Exception):
         return f"""Devnet tried to return invalid value: \"{self.validation_error.message}\""""
 
 
+@lru_cache
+def felt_pattern_from_schema() -> str:
+    _, schemas = _load_schemas()
+
+    return schemas["FELT"]["pattern"]
+
+
 def validate_schema(method_name: str):
     """
     Decorator ensuring that call to rpc method and its response are valid
