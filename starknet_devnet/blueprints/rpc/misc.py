@@ -44,9 +44,12 @@ def check_address(address, event):
 def check_keys(keys: List[List[Felt]], event):
     """
     Check keys.
+
+    Check every key in an event against related list of accepted values.
+    n-th array in keys (keys[n]) lists all possible values of n-th key in an
+    event (event.keys[n]). Empty list of accepted_keys, means that all keys
+    should be accepted.
     """
-    # Check every key in an event against related list of accepted values.
-    # Empty list means that all keys should be accepted.
     for event_key, accepted_keys in zip(event.keys, keys):
         if len(accepted_keys) > 0 and event_key not in accepted_keys:
             return False
