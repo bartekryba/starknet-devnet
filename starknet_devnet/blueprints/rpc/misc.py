@@ -47,8 +47,8 @@ def check_keys(keys: List[List[Felt]], event):
     """
     # Check every key in an event against related list of accepted values.
     # Empty list means that all keys should be accepted.
-    for key, filter_keys in zip(event.keys, keys):
-        if keys and key not in filter_keys:
+    for event_key, accepted_keys in zip(event.keys, keys):
+        if len(accepted_keys) > 0 and event_key not in accepted_keys:
             return False
 
     return True
