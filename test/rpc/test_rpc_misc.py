@@ -133,17 +133,18 @@ def test_get_pending_state_update():
     pending_state_update = resp["result"]
     keys = pending_state_update.keys()
 
-    assert len(keys) == 2
-    assert "old_root" in keys and "state_diff" in keys
+    assert set(keys) == set(["old_root", "state_diff"])
 
     state_diff = pending_state_update["state_diff"]
 
-    assert state_diff["declared_classes"] == []
-    assert state_diff["deployed_contracts"] == []
-    assert state_diff["deprecated_declared_classes"] == []
-    assert state_diff["nonces"] == []
-    assert state_diff["replaced_classes"] == []
-    assert state_diff["storage_diffs"] == []
+    assert state_diff == {
+        "declared_classes": [],
+        "deployed_contracts": [],
+        "deprecated_declared_classes": [],
+        "nonces": [],
+        "replaced_classes": [],
+        "storage_diffs": [],
+    }
 
 
 @pytest.mark.usefixtures("devnet_with_account")
