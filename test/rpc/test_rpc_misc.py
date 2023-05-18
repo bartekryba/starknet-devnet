@@ -125,6 +125,28 @@ def test_get_state_update_declare_v2():
 
 
 @pytest.mark.usefixtures("devnet_with_account")
+def test_get_pending_state_update():
+    """
+    Test if getStateUpdate returns correct update for a pending state.
+    """
+    resp = rpc_call("starknet_getStateUpdate", params={"block_id": "pending"})
+    pending_state_update = resp["result"]
+    keys = pending_state_update.keys()
+
+    assert len(keys) == 2
+    assert "old_root" in keys and "state_diff" in keys
+
+    state_diff = pending_state_update["state_diff"]
+
+    assert state_diff["declared_classes"] == []
+    assert state_diff["deployed_contracts"] == []
+    assert state_diff["deprecated_declared_classes"] == []
+    assert state_diff["nonces"] == []
+    assert state_diff["replaced_classes"] == []
+    assert state_diff["storage_diffs"] == []
+
+
+@pytest.mark.usefixtures("devnet_with_account")
 def test_storage_diff():
     """Test storage diffs in the state update"""
 

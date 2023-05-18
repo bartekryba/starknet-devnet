@@ -830,16 +830,23 @@ class RpcStateDiff(TypedDict):
     nonces: List[RpcNonceDiff]
 
 
-class RpcStateUpdate(TypedDict):
-    """TypedDict for rpc state update"""
+class RpcPendingStateUpdate(TypedDict):
+    """TypedDict for pending rpc state update"""
 
-    block_hash: BlockHash
-    new_root: Felt
     old_root: Felt
     state_diff: RpcStateDiff
 
 
-def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
+class RpcStateUpdate(RpcPendingStateUpdate):
+    """TypedDict for rpc state update"""
+
+    block_hash: BlockHash
+    new_root: Felt
+
+
+def rpc_state_update(
+    state_update: BlockStateUpdate,
+) -> Union[RpcStateUpdate, RpcPendingStateUpdate]:
     """
     Convert gateway state update to rpc state update
     """
@@ -900,17 +907,26 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
             for address, nonce in state_update.state_diff.nonces.items()
         ]
 
+    state_diff: RpcStateDiff = {
+        "storage_diffs": storage_diffs(),
+        "deprecated_declared_classes": deprecated_declared_classes(),
+        "declared_classes": declared_classes(),
+        "deployed_contracts": deployed_contracts(),
+        "replaced_classes": replaced_classes(),
+        "nonces": nonces(),
+    }
+
+    if state_update.block_hash is None or state_update.block_hash == 0:
+        pending_rpc_state: RpcPendingStateUpdate = {
+            "old_root": rpc_root(state_update.old_root.hex()),
+            "state_diff": state_diff,
+        }
+        return pending_rpc_state
+
     rpc_state: RpcStateUpdate = {
         "block_hash": rpc_felt(state_update.block_hash),
         "new_root": rpc_root(state_update.new_root.hex()),
         "old_root": rpc_root(state_update.old_root.hex()),
-        "state_diff": {
-            "storage_diffs": storage_diffs(),
-            "deprecated_declared_classes": deprecated_declared_classes(),
-            "declared_classes": declared_classes(),
-            "deployed_contracts": deployed_contracts(),
-            "replaced_classes": replaced_classes(),
-            "nonces": nonces(),
-        },
+        "state_diff": state_diff,
     }
     return rpc_state
