@@ -662,9 +662,9 @@ def test_add_declare_transaction_v1():
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_add_declare_transaction_v0(declare_content):
+def test_add_declare_transaction_v0_fails(declare_content):
     """
-    Add declare transaction with tx v0
+    Adding declare transaction with tx v0 should fail
     """
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
@@ -685,15 +685,12 @@ def test_add_declare_transaction_v0(declare_content):
         sender_address=rpc_felt(1),
     )
 
-    resp = rpc_call(
+    ex = rpc_call(
         "starknet_addDeclareTransaction",
         params={"declare_transaction": declare_transaction},
     )
-    receipt = resp["result"]
 
-    assert set(receipt.keys()) == set(["transaction_hash", "class_hash"])
-    assert is_felt(receipt["transaction_hash"])
-    assert is_felt(receipt["class_hash"])
+    assert ex["error"] == {"code": 50, "message": "Invalid contract class"}
 
 
 @pytest.mark.usefixtures("devnet_with_account")

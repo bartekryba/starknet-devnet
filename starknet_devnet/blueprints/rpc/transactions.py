@@ -35,6 +35,7 @@ from starknet_devnet.blueprints.rpc.utils import (
     get_block_by_block_id,
     rpc_felt,
 )
+from starknet_devnet.constants import LEGACY_TX_VERSION
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
@@ -120,6 +121,9 @@ async def add_declare_transaction(
     """
     Submit a new class declaration transaction
     """
+    if int(declare_transaction["version"], 0) == LEGACY_TX_VERSION:
+        raise RpcError.from_spec_name("INVALID_CONTRACT_CLASS")
+
     class_hash, transaction_hash = await state.starknet_wrapper.declare(
         external_tx=make_declare(declare_transaction)
     )
@@ -180,6 +184,7 @@ async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> l
     """
     await assert_block_id_is_valid(block_id)
     transactions = list(map(make_transaction, request))
+
     try:
         _, fee_response = await state.starknet_wrapper.calculate_traces_and_fees(
             transactions,

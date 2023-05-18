@@ -29,9 +29,6 @@ from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.services.api.contract_class.contract_class import (
     DeprecatedCompiledClass,
 )
-from starkware.starknet.services.api.gateway.transaction import (
-    DEFAULT_DECLARE_SENDER_ADDRESS,
-)
 from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
 
 from starknet_devnet.account_util import get_execute_args
@@ -122,35 +119,6 @@ def test_estimate_happy_path():
 
     response = rpc_call_background_devnet(
         "starknet_estimateFee", {"request": [invoke_transaction], "block_id": "latest"}
-    )
-
-    common_estimate_response(response)
-
-
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_estimate_fee_declare_v0(declare_content):
-    """Test estimate_fee with declare transaction"""
-    contract_class = declare_content["contract_class"]
-    pad_zero_entry_points(contract_class["entry_points_by_type"])
-
-    _rpc_contract_class = RpcDeprecatedContractClass(
-        program=contract_class["program"],
-        entry_points_by_type=contract_class["entry_points_by_type"],
-        abi=contract_class["abi"],
-    )
-
-    declare_transaction = RpcBroadcastedDeclareTxnV1(
-        type=declare_content["type"],
-        max_fee=rpc_felt(declare_content["max_fee"]),
-        version=hex(LEGACY_RPC_TX_VERSION),
-        signature=[],
-        nonce=rpc_felt(0),
-        contract_class=_rpc_contract_class,
-        sender_address=rpc_felt(DEFAULT_DECLARE_SENDER_ADDRESS),
-    )
-
-    response = rpc_call_background_devnet(
-        "starknet_estimateFee", {"request": [declare_transaction], "block_id": "latest"}
     )
 
     common_estimate_response(response)

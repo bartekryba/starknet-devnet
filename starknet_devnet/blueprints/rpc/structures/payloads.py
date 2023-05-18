@@ -4,6 +4,10 @@ RPC payload structures
 
 from __future__ import annotations
 
+from test.shared import (
+    DEPRECATED_RPC_DECLARE_TX_VERSION,
+    SUPPORTED_RPC_DECLARE_TX_VERSION,
+)
 from typing import Callable, Dict, List, Optional, Union
 
 from marshmallow.exceptions import MarshmallowError
@@ -493,9 +497,15 @@ def make_declare(
     declare_transaction: RpcBroadcastedDeclareTxn,
 ) -> Union[Declare, DeprecatedDeclare]:
     """Convert RpcBroadcastedDeclareTxn to Declare or DeprecatedDeclare"""
-    if "compiled_class_hash" in declare_transaction:
+    if int(declare_transaction["version"], 0) == SUPPORTED_RPC_DECLARE_TX_VERSION:
         return make_declare_v2(declare_transaction)
-    return make_declare_v1(declare_transaction)
+    if int(declare_transaction["version"], 0) == DEPRECATED_RPC_DECLARE_TX_VERSION:
+        return make_declare_v1(declare_transaction)
+
+    raise RpcError(
+        code=-1,
+        message=f"Declare transaction version {declare_transaction['version']} is not supported by devnet",
+    )
 
 
 def make_deploy_account(
