@@ -5,6 +5,8 @@ import json
 from test.account import deploy, send_declare_v2
 from test.rpc.rpc_utils import rpc_call
 from test.shared import (
+    ABI_1_PATH,
+    CONTRACT_1_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
@@ -84,52 +86,21 @@ EXPECTED_ABI = [
     },
 ]
 
-EXPECTED_ENTRY_POINTS_CAIRO_1 = {
-    "EXTERNAL": [
-        {
-            "selector": "0x362398bec32bc0ebb411203221a35a0301193a96f317ebe5e40be9f60d15320",
-            "function_idx": 0,
-        },
-        {
-            "selector": "0x39e11d48192e4333233c7eb19d10ad67c362bb28580c604d67884c85da39695",
-            "function_idx": 1,
-        },
-    ],
-    "L1_HANDLER": [],
-    "CONSTRUCTOR": [
-        {
-            "selector": "0x28ffe4ff0f226a9107253e17a904099aa4f63a02a5621de0576e5aa71bc5194",
-            "function_idx": 2,
-        }
-    ],
-}
 
-EXPECTED_ABI_CAIRO_1 = [
-    {
-        "type": "function",
-        "name": "constructor",
-        "inputs": [{"name": "initial_balance", "type": "core::felt252"}],
-        "outputs": [],
-        "state_mutability": "external",
-    },
-    {
-        "type": "function",
-        "name": "increase_balance",
-        "inputs": [
-            {"name": "amount1", "type": "core::felt252"},
-            {"name": "amount2", "type": "core::felt252"},
-        ],
-        "outputs": [],
-        "state_mutability": "external",
-    },
-    {
-        "type": "function",
-        "name": "get_balance",
-        "inputs": [],
-        "outputs": [{"type": "core::felt252"}],
-        "state_mutability": "view",
-    },
-]
+def assert_correct_cairo_1_contract(contract_class):
+    """
+    Assert that the provided cairo 1 contract is equal to the expected one.
+    """
+    with open(CONTRACT_1_PATH, mode="r", encoding="utf-8") as expected_contract, open(
+        ABI_1_PATH, mode="r", encoding="utf-8"
+    ) as expected_abi:
+        expected_contract_json = json.loads(expected_contract.read())
+        expected_abi_json = json.loads(expected_abi.read())
+        assert (
+            contract_class["entry_points_by_type"]
+            == expected_contract_json["entry_points_by_type"]
+        )
+        assert contract_class["abi"] == json.dumps(expected_abi_json)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -182,9 +153,7 @@ def test_get_class():
     )
 
     contract_class = resp["result"]
-
-    assert contract_class["entry_points_by_type"] == EXPECTED_ENTRY_POINTS_CAIRO_1
-    assert contract_class["abi"] == json.dumps(EXPECTED_ABI_CAIRO_1)
+    assert_correct_cairo_1_contract(contract_class)
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
@@ -222,9 +191,7 @@ def test_get_class_at():
     )
 
     contract_class = resp["result"]
-
-    assert contract_class["entry_points_by_type"] == EXPECTED_ENTRY_POINTS_CAIRO_1
-    assert contract_class["abi"] == json.dumps(EXPECTED_ABI_CAIRO_1)
+    assert_correct_cairo_1_contract(contract_class)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

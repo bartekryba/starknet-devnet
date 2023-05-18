@@ -192,6 +192,9 @@ class ResponseValidationErrorWrapper(Exception):
 
 @lru_cache
 def felt_pattern_from_schema() -> str:
+    """
+    Load regex pattern of felt from rpc schema.
+    """
     _, schemas = _load_schemas()
 
     return schemas["FELT"]["pattern"]

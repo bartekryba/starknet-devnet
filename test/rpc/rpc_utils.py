@@ -5,7 +5,6 @@ Utilities for RPC tests
 from __future__ import annotations
 
 import re
-from starknet_devnet.blueprints.rpc.schema import felt_pattern_from_schema
 from test.account import declare_and_deploy_with_chargeable, invoke
 from test.settings import APP_URL
 from test.shared import (
@@ -17,6 +16,8 @@ from test.util import assert_transaction
 from typing import List, Union
 
 import requests
+
+from starknet_devnet.blueprints.rpc.schema import felt_pattern_from_schema
 
 
 class BackgroundDevnetClient:
