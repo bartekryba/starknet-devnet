@@ -135,19 +135,6 @@ def test_get_class():
     assert_declare_v2_accepted(declare_response)
     class_hash = declare_response.json()["class_hash"]
 
-    # deploy
-    initial_balance = 10
-    deploy_info = deploy(
-        class_hash=class_hash,
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-        inputs=[str(initial_balance)],
-        max_fee=int(1e18),
-    )
-    assert_tx_status(
-        tx_hash=deploy_info["tx_hash"], expected_tx_status="ACCEPTED_ON_L2"
-    )
-
     resp = rpc_call(
         "starknet_getClass", params={"block_id": "latest", "class_hash": class_hash}
     )
