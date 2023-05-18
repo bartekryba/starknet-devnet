@@ -9,9 +9,11 @@ from test.account import _get_signature, get_nonce
 from test.rpc.rpc_utils import rpc_call_background_devnet
 from test.rpc.test_rpc_transactions import pad_zero_entry_points
 from test.shared import (
+    DEPRECATED_RPC_DECLARE_TX_VERSION,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    SUPPORTED_RPC_DECLARE_TX_VERSION,
     SUPPORTED_RPC_TX_VERSION,
 )
 from test.test_account import deploy_empty_contract
@@ -181,14 +183,14 @@ def test_estimate_fee_declare_v1(declare_content):
         sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
         max_fee=0,
         nonce=nonce,
-        version=SUPPORTED_RPC_TX_VERSION,
+        version=DEPRECATED_RPC_DECLARE_TX_VERSION,
     )
     signature = _get_signature(tx_hash, PREDEPLOYED_ACCOUNT_PRIVATE_KEY)
 
     declare_transaction = RpcBroadcastedDeclareTxnV1(
         type=declare_content["type"],
         max_fee=rpc_felt(0),
-        version=hex(SUPPORTED_RPC_TX_VERSION),
+        version=hex(DEPRECATED_RPC_DECLARE_TX_VERSION),
         signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(nonce),
         contract_class=_rpc_contract_class,
@@ -209,7 +211,6 @@ def test_estimate_fee_declare_v2():
     """
     contract_class, _, compiled_class_hash = load_cairo1_contract()
 
-    version = 2
     nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
 
     tx_hash = calculate_declare_transaction_hash(
@@ -218,7 +219,7 @@ def test_estimate_fee_declare_v2():
         chain_id=StarknetChainId.TESTNET.value,
         sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
         max_fee=0,
-        version=version,
+        version=SUPPORTED_RPC_DECLARE_TX_VERSION,
         nonce=nonce,
     )
 
@@ -229,7 +230,7 @@ def test_estimate_fee_declare_v2():
         sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         compiled_class_hash=rpc_felt(compiled_class_hash),
         type="DECLARE",
-        version=rpc_felt(version),
+        version=rpc_felt(SUPPORTED_RPC_DECLARE_TX_VERSION),
         nonce=rpc_felt(nonce),
         max_fee=rpc_felt(0),
         signature=list(map(rpc_felt, signature)),
@@ -254,7 +255,7 @@ def test_estimate_multiple_transactions():
     invoke_transaction = RpcBroadcastedInvokeTxnV1(
         type="INVOKE",
         max_fee=rpc_felt(0),
-        version=hex(SUPPORTED_RPC_TX_VERSION),
+        version=hex(DEPRECATED_RPC_DECLARE_TX_VERSION),
         signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(nonce),
         sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
@@ -262,8 +263,6 @@ def test_estimate_multiple_transactions():
     )
 
     contract_class, _, compiled_class_hash = load_cairo1_contract()
-
-    version = 2
     nonce += 1
 
     tx_hash = calculate_declare_transaction_hash(
@@ -272,7 +271,7 @@ def test_estimate_multiple_transactions():
         chain_id=StarknetChainId.TESTNET.value,
         sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
         max_fee=0,
-        version=version,
+        version=SUPPORTED_RPC_DECLARE_TX_VERSION,
         nonce=nonce,
     )
 
@@ -283,7 +282,7 @@ def test_estimate_multiple_transactions():
         sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         compiled_class_hash=rpc_felt(compiled_class_hash),
         type="DECLARE",
-        version=rpc_felt(version),
+        version=rpc_felt(SUPPORTED_RPC_DECLARE_TX_VERSION),
         nonce=rpc_felt(nonce),
         max_fee=rpc_felt(0),
         signature=list(map(rpc_felt, signature)),

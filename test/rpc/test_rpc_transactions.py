@@ -21,11 +21,13 @@ from test.rpc.rpc_utils import (
 from test.shared import (
     ABI_PATH,
     CONTRACT_PATH,
+    DEPRECATED_RPC_DECLARE_TX_VERSION,
     EXPECTED_UDC_ADDRESS,
     INCORRECT_GENESIS_BLOCK_HASH,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     STARKNET_CLI_ACCOUNT_ABI_PATH,
+    SUPPORTED_RPC_DECLARE_TX_VERSION,
     SUPPORTED_RPC_TX_VERSION,
 )
 from test.test_declare_v2 import load_cairo1_contract
@@ -549,7 +551,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
     declare_transaction = RpcBroadcastedDeclareTxnV1(
         type=declare_content["type"],
         max_fee=rpc_felt(declare_content["max_fee"]),
-        version=hex(SUPPORTED_RPC_TX_VERSION),
+        version=hex(DEPRECATED_RPC_DECLARE_TX_VERSION),
         signature=[rpc_felt(sig) for sig in declare_content["signature"]],
         nonce=rpc_felt(declare_content["nonce"]),
         contract_class=contract_class,
@@ -570,7 +572,6 @@ def test_add_declare_transaction_v2():
     contract_class, _, compiled_class_hash = load_cairo1_contract()
 
     max_fee = int(4e16)
-    version = 2
     nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
 
     tx_hash = calculate_declare_transaction_hash(
@@ -579,7 +580,7 @@ def test_add_declare_transaction_v2():
         chain_id=StarknetChainId.TESTNET.value,
         sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
         max_fee=max_fee,
-        version=version,
+        version=SUPPORTED_RPC_DECLARE_TX_VERSION,
         nonce=nonce,
     )
 
@@ -590,7 +591,7 @@ def test_add_declare_transaction_v2():
         sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         compiled_class_hash=rpc_felt(compiled_class_hash),
         type="DECLARE",
-        version=rpc_felt(version),
+        version=rpc_felt(SUPPORTED_RPC_DECLARE_TX_VERSION),
         nonce=rpc_felt(nonce),
         max_fee=rpc_felt(max_fee),
         signature=list(map(rpc_felt, signature)),
@@ -635,7 +636,7 @@ def _add_declare_transaction():
     declare_transaction = RpcBroadcastedDeclareTxnV1(
         type="DECLARE",
         max_fee=rpc_felt(max_fee),
-        version=hex(SUPPORTED_RPC_TX_VERSION),
+        version=hex(DEPRECATED_RPC_DECLARE_TX_VERSION),
         signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(nonce),
         contract_class=_rpc_contract_class,
