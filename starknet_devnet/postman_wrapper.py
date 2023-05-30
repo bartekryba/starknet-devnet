@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 from starkware.eth.eth_test_utils import EthAccount, EthContract
-from starkware.eth.web3_wrapper import web3_contract_create_filter_fix
 from starkware.solidity.utils import load_nearby_contract
 from starkware.starknet.business_logic.transaction.objects import InternalL1Handler
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
@@ -107,7 +106,7 @@ and that the Messaging Contract is deployed at the provided address ({contract_a
         """Handles all pending L1 <> L2 messages and sends them to the other layer."""
 
         if self.__postman_wrapper is None:
-            return {}
+            return ({}, [])
 
         postman = self.__postman_wrapper.postman
 
@@ -159,15 +158,14 @@ class LocalPostmanWrapper(PostmanWrapper):
         self.eth_account = EthAccount(self.web3, self.web3.eth.accounts[0])
 
     def load_mock_messaging_contract_in_l1(self, starknet, contract_address):
+        messaging_contract = load_nearby_contract("MockStarknetMessaging")
         if contract_address is None:
             self.mock_starknet_messaging_contract = self.eth_account.deploy(
-                load_nearby_contract("MockStarknetMessaging"),
-                L1_MESSAGE_CANCELLATION_DELAY,
+                messaging_contract, L1_MESSAGE_CANCELLATION_DELAY
             )
         else:
             address = Web3.to_checksum_address(contract_address)
-            contract_json = load_nearby_contract("MockStarknetMessaging")
-            abi = contract_json["abi"]
+            abi = messaging_contract["abi"]
             w3_contract = self.web3.eth.contract(abi=abi, address=address)
             self.mock_starknet_messaging_contract = EthContract(
                 self.web3, address, w3_contract, abi, self.eth_account
@@ -199,7 +197,6 @@ class Postman:
 
         # Create a filter to collect LogMessageToL2 events.
         w3_contract = self.mock_starknet_messaging_contract.w3_contract
-        web3_contract_create_filter_fix(w3_contract.events.LogMessageToL2)
         self.message_to_l2_filter = w3_contract.events.LogMessageToL2.create_filter(
             fromBlock=LATEST_BLOCK_ID
         )
