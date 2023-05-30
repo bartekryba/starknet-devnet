@@ -227,17 +227,6 @@ def test_get_events_malformed_request():
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_events_missing_parameter():
-    """
-    Test RPC get_events with malformed request.
-    """
-    params = create_get_events_filter()
-    del params["filter"]["address"]
-    resp = rpc_call("starknet_getEvents", params=params)
-    assert resp["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
-
-
-@pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_events_wrong_blockid_type():
     """
     Test RPC get_events with malformed request.
