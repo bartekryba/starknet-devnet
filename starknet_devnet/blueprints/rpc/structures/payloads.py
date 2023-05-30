@@ -577,7 +577,7 @@ class StructMember(TypedDict):
 
     name: str
     type: str
-    offset: int
+    offset: Optional[int]
 
 
 class FunctionAbiEntry(TypedDict):
@@ -587,6 +587,7 @@ class FunctionAbiEntry(TypedDict):
     name: str
     inputs: List[TypedParameter]
     outputs: List[TypedParameter]
+    stateMutability: Optional[Literal["view"]]
 
 
 class EventAbiEntry(TypedDict):
@@ -614,6 +615,15 @@ def function_abi_entry(abi_entry: AbiEntryType) -> FunctionAbiEntry:
     """
     Convert function gateway abi entry to rpc FunctionAbiEntry
     """
+    if "stateMutability" in abi_entry:
+        return FunctionAbiEntry(
+            type=abi_entry["type"],
+            name=abi_entry["name"],
+            inputs=abi_entry["inputs"],
+            outputs=abi_entry["outputs"],
+            stateMutability=abi_entry["stateMutability"],
+        )
+
     return FunctionAbiEntry(
         type=abi_entry["type"],
         name=abi_entry["name"],

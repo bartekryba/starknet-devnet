@@ -6,6 +6,7 @@ from test.account import deploy, send_declare_v2
 from test.rpc.rpc_utils import rpc_call
 from test.shared import (
     ABI_1_PATH,
+    ABI_PATH,
     CONTRACT_1_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
@@ -43,49 +44,6 @@ EXPECTED_ENTRY_POINTS = {
     "L1_HANDLER": [],
 }
 
-# abi from ABI_PATH (test/shared.py), but with all stateMutability omitted
-EXPECTED_ABI = [
-    {
-        "type": "struct",
-        "name": "Point",
-        "size": 2,
-        "members": [
-            {"name": "x", "offset": 0, "type": "felt"},
-            {"name": "y", "offset": 1, "type": "felt"},
-        ],
-    },
-    {
-        "type": "constructor",
-        "name": "constructor",
-        "inputs": [{"name": "initial_balance", "type": "felt"}],
-        "outputs": [],
-    },
-    {
-        "type": "function",
-        "name": "increase_balance",
-        "inputs": [
-            {"name": "amount1", "type": "felt"},
-            {"name": "amount2", "type": "felt"},
-        ],
-        "outputs": [],
-    },
-    {
-        "type": "function",
-        "name": "get_balance",
-        "inputs": [],
-        "outputs": [{"name": "res", "type": "felt"}],
-    },
-    {
-        "type": "function",
-        "name": "sum_point_array",
-        "inputs": [
-            {"name": "points_len", "type": "felt"},
-            {"name": "points", "type": "Point*"},
-        ],
-        "outputs": [{"name": "res", "type": "Point"}],
-    },
-]
-
 
 def assert_correct_cairo_1_contract(contract_class):
     """
@@ -108,15 +66,17 @@ def test_get_deprecated_class(class_hash):
     """
     Test get contract class
     """
-    resp = rpc_call(
-        "starknet_getClass", params={"block_id": "latest", "class_hash": class_hash}
-    )
-    contract_class = resp["result"]
+    with open(ABI_PATH, mode="r", encoding="utf-8") as expected_abi:
+        expected_abi_json = json.loads(expected_abi.read())
+        resp = rpc_call(
+            "starknet_getClass", params={"block_id": "latest", "class_hash": class_hash}
+        )
+        contract_class = resp["result"]
 
-    assert contract_class["entry_points_by_type"] == EXPECTED_ENTRY_POINTS
-    assert isinstance(contract_class["program"], str)
-    decompress_program(contract_class["program"])
-    assert contract_class["abi"] == EXPECTED_ABI
+        assert contract_class["entry_points_by_type"] == EXPECTED_ENTRY_POINTS
+        assert isinstance(contract_class["program"], str)
+        decompress_program(contract_class["program"])
+        assert contract_class["abi"] == expected_abi_json
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
@@ -203,16 +163,21 @@ def test_get_deprecated_class_at(deploy_info):
     """
     Test get contract class at given contract address
     """
-    contract_address: str = deploy_info["address"]
-    block_id: BlockId = "latest"
+    with open(ABI_PATH, mode="r", encoding="utf-8") as expected_abi:
+        expected_abi_json = json.loads(expected_abi.read())
+        contract_address: str = deploy_info["address"]
+        block_id: BlockId = "latest"
 
-    resp = rpc_call(
-        "starknet_getClassAt",
-        params={"contract_address": rpc_felt(contract_address), "block_id": block_id},
-    )
-    contract_class = resp["result"]
+        resp = rpc_call(
+            "starknet_getClassAt",
+            params={
+                "contract_address": rpc_felt(contract_address),
+                "block_id": block_id,
+            },
+        )
+        contract_class = resp["result"]
 
-    assert contract_class["entry_points_by_type"] == EXPECTED_ENTRY_POINTS
-    assert isinstance(contract_class["program"], str)
-    decompress_program(contract_class["program"])
-    assert contract_class["abi"] == EXPECTED_ABI
+        assert contract_class["entry_points_by_type"] == EXPECTED_ENTRY_POINTS
+        assert isinstance(contract_class["program"], str)
+        decompress_program(contract_class["program"])
+        assert contract_class["abi"] == expected_abi_json
