@@ -224,7 +224,7 @@ def test_get_events_empty_filter():
     params = {"filter": {"chunk_size": 100}}
     resp = rpc_call("starknet_getEvents", params=params)
 
-    assert "error" not in resp
+    assert "result" in resp and "events" in resp["result"]
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
