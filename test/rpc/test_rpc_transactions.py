@@ -617,65 +617,40 @@ def test_declare_transaction_v2_already_declared():
     contract_class, _, compiled_class_hash = load_cairo1_contract()
 
     max_fee = int(4e16)
-    nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
 
-    tx_hash = calculate_declare_transaction_hash(
-        contract_class=contract_class,
-        compiled_class_hash=compiled_class_hash,
-        chain_id=StarknetChainId.TESTNET.value,
-        sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
-        max_fee=max_fee,
-        version=SUPPORTED_RPC_DECLARE_TX_VERSION,
-        nonce=nonce,
-    )
+    def declare_tx():
+        nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
 
-    signature = _get_signature(tx_hash, PREDEPLOYED_ACCOUNT_PRIVATE_KEY)
+        tx_hash = calculate_declare_transaction_hash(
+            contract_class=contract_class,
+            compiled_class_hash=compiled_class_hash,
+            chain_id=StarknetChainId.TESTNET.value,
+            sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
+            max_fee=max_fee,
+            version=SUPPORTED_RPC_DECLARE_TX_VERSION,
+            nonce=nonce,
+        )
 
-    declare_transaction = RpcBroadcastedDeclareTxnV2(
-        contract_class=rpc_contract_class(contract_class),
-        sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        compiled_class_hash=rpc_felt(compiled_class_hash),
-        type="DECLARE",
-        version=rpc_felt(SUPPORTED_RPC_DECLARE_TX_VERSION),
-        nonce=rpc_felt(nonce),
-        max_fee=rpc_felt(max_fee),
-        signature=list(map(rpc_felt, signature)),
-    )
+        signature = _get_signature(tx_hash, PREDEPLOYED_ACCOUNT_PRIVATE_KEY)
 
-    rpc_call(
-        "starknet_addDeclareTransaction",
-        params={"declare_transaction": declare_transaction},
-    )
+        declare_transaction = RpcBroadcastedDeclareTxnV2(
+            contract_class=rpc_contract_class(contract_class),
+            sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            compiled_class_hash=rpc_felt(compiled_class_hash),
+            type="DECLARE",
+            version=rpc_felt(SUPPORTED_RPC_DECLARE_TX_VERSION),
+            nonce=rpc_felt(nonce),
+            max_fee=rpc_felt(max_fee),
+            signature=list(map(rpc_felt, signature)),
+        )
 
-    nonce2 = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
+        return rpc_call(
+            "starknet_addDeclareTransaction",
+            params={"declare_transaction": declare_transaction},
+        )
 
-    tx_hash2 = calculate_declare_transaction_hash(
-        contract_class=contract_class,
-        compiled_class_hash=compiled_class_hash,
-        chain_id=StarknetChainId.TESTNET.value,
-        sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
-        max_fee=max_fee,
-        version=SUPPORTED_RPC_DECLARE_TX_VERSION,
-        nonce=nonce2,
-    )
-
-    signature2 = _get_signature(tx_hash2, PREDEPLOYED_ACCOUNT_PRIVATE_KEY)
-
-    declare_transaction2 = RpcBroadcastedDeclareTxnV2(
-        contract_class=rpc_contract_class(contract_class),
-        sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        compiled_class_hash=rpc_felt(compiled_class_hash),
-        type="DECLARE",
-        version=rpc_felt(SUPPORTED_RPC_DECLARE_TX_VERSION),
-        nonce=rpc_felt(nonce2),
-        max_fee=rpc_felt(max_fee),
-        signature=list(map(rpc_felt, signature2)),
-    )
-
-    ex = rpc_call(
-        "starknet_addDeclareTransaction",
-        params={"declare_transaction": declare_transaction2},
-    )
+    declare_tx()
+    ex = declare_tx()
 
     assert ex["error"] == {"code": 51, "message": "Class already declared"}
 
