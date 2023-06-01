@@ -40,7 +40,7 @@ from starkware.starknet.services.api.gateway.transaction_utils import (
     decompress_program,
 )
 from starkware.starkware_utils.error_handling import StarkException
-from typing_extensions import Literal, TypedDict
+from typing_extensions import Literal, NotRequired, TypedDict
 
 from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
@@ -595,7 +595,7 @@ class FunctionAbiEntry(TypedDict):
     name: str
     inputs: List[TypedParameter]
     outputs: List[TypedParameter]
-    stateMutability: Optional[Literal["view"]]
+    stateMutability: NotRequired[Literal["view"]]
 
 
 class EventAbiEntry(TypedDict):
