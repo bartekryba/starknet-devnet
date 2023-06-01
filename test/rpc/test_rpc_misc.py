@@ -213,6 +213,21 @@ def test_call_method_with_incorrect_type_params():
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_events_empty_filter():
+    """
+    Test RPC get_events with empty filter.
+
+    Only required field in filter is chunk_size, so it should
+    work with just that.
+    """
+
+    params = {"filter": {"chunk_size": 100}}
+    resp = rpc_call("starknet_getEvents", params=params)
+
+    assert "error" not in resp
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_events_malformed_request():
     """
     Test RPC get_events with malformed request.
