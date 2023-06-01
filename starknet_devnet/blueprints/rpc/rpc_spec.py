@@ -1,6 +1,7 @@
 # pylint: disable=too-many-lines, missing-module-docstring
 # NOTE: This is modified version of 0.3.0 spec
-# All usages of "anyOf" have been replaced by "anyOf"
+# All usages of "oneOf" have been replaced by "anyOf"
+# and the required field from STRUCT_MEMBER was removed.
 RPC_SPECIFICATION = r"""
 {
     "openrpc": "1.0.0-rc1",
