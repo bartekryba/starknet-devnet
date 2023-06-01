@@ -623,7 +623,7 @@ def function_abi_entry(abi_entry: AbiEntryType) -> FunctionAbiEntry:
     """
     Convert function gateway abi entry to rpc FunctionAbiEntry
     """
-    function_abi_entry = FunctionAbiEntry(
+    rpc_function_abi_entry = FunctionAbiEntry(
         type=abi_entry["type"],
         name=abi_entry["name"],
         inputs=abi_entry["inputs"],
@@ -631,9 +631,9 @@ def function_abi_entry(abi_entry: AbiEntryType) -> FunctionAbiEntry:
     )
 
     if "stateMutability" in abi_entry:
-        function_abi_entry["stateMutability"] = abi_entry["stateMutability"]
+        rpc_function_abi_entry["stateMutability"] = abi_entry["stateMutability"]
 
-    return function_abi_entry
+    return rpc_function_abi_entry
 
 
 def struct_abi_entry(abi_entry: AbiEntryType) -> StructAbiEntry:
